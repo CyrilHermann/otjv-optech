@@ -227,7 +227,26 @@ function setProgress() {
 
   progressText.textContent = "Finalisation";
 }
+function resetCoaching() {
 
+  const confirmed = window.confirm(
+    "Voulez-vous vraiment recommencer le coaching ?\n\nToutes les données seront supprimées."
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  localStorage.removeItem(STORAGE_KEY);
+
+  state = {
+    ...initialState,
+    timestamp: new Date().toISOString(),
+    answers: {}
+  };
+
+  render();
+}
 /**
  * Affiche la page correspondant à l'étape actuelle.
  */
