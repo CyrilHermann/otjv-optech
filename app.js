@@ -1115,3 +1115,12 @@ function checkDependencies() {
 if (checkDependencies()) {
   render();
 }
+
+const restartButton = document.getElementById("restartApp");
+
+if (restartButton) {
+  restartButton.addEventListener(
+    "click",
+    resetCoaching
+  );
+}
