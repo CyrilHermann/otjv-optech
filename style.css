@@ -21,11 +21,22 @@
   box-sizing: border-box;
 }
 
+html {
+  min-height: 100%;
+}
+
 body {
+  min-height: 100vh;
   margin: 0;
   font-family: Inter, "Segoe UI", Arial, sans-serif;
   background: var(--bg);
   color: var(--text);
+}
+
+button,
+input,
+textarea {
+  font-family: inherit;
 }
 
 .topbar {
@@ -167,6 +178,14 @@ body {
   outline: none;
   background: #ffffff;
   color: var(--text);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.field input::placeholder,
+.field textarea::placeholder {
+  color: #9b918a;
 }
 
 .field input:focus,
@@ -178,6 +197,22 @@ body {
 .field textarea {
   min-height: 130px;
   resize: vertical;
+}
+
+.field-help {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+  margin-top: 2px;
+}
+
+/*
+ * Les champs utilisant une datalist restent des champs
+ * de texte : l'utilisateur peut sélectionner ou écrire.
+ */
+input[list] {
+  cursor: text;
 }
 
 .actions {
@@ -197,11 +232,16 @@ body {
   transition:
     transform 0.15s ease,
     opacity 0.15s ease,
-    box-shadow 0.15s ease;
+    box-shadow 0.15s ease,
+    background-color 0.15s ease;
 }
 
 .btn:hover {
   transform: translateY(-1px);
+}
+
+.btn:active {
+  transform: translateY(0);
 }
 
 .btn-primary {
@@ -219,14 +259,26 @@ body {
   color: #4b3d34;
 }
 
+.btn-secondary:hover {
+  background: #e2d7cf;
+}
+
 .btn-success {
   background: #15803d;
   color: #ffffff;
 }
 
+.btn-success:hover {
+  background: #116b33;
+}
+
 .btn-danger {
   background: #b91c1c;
   color: #ffffff;
+}
+
+.btn-danger:hover {
+  background: #991b1b;
 }
 
 .btn:disabled {
@@ -320,6 +372,7 @@ body {
 }
 
 .score {
+  min-height: 68px;
   border: 2px solid transparent;
   border-radius: 12px;
   padding: 12px 6px;
@@ -334,6 +387,10 @@ body {
 
 .score:hover {
   transform: translateY(-1px);
+}
+
+.score:active {
+  transform: translateY(0);
 }
 
 .score small {
@@ -371,6 +428,7 @@ body {
 
 .alert {
   padding: 12px 14px;
+  border: 1px solid #f2d09c;
   border-radius: 10px;
   background: #fff4e5;
   color: #8a5200;
@@ -417,11 +475,13 @@ body {
 
 .summary-table th {
   color: var(--brown-dark);
+  background: var(--brown-soft);
 }
 
 .summary-table td:last-child,
 .summary-table th:last-child {
   text-align: right;
+  white-space: nowrap;
 }
 
 .sign-grid {
@@ -444,6 +504,7 @@ body {
 }
 
 .signature-box canvas {
+  display: block;
   width: 100%;
   height: 160px;
   border: 1px dashed #b6aaa1;
@@ -459,10 +520,16 @@ body {
 
 .link-btn {
   border: 0;
+  padding: 4px;
   background: none;
   color: var(--brown);
   font-weight: 700;
   cursor: pointer;
+}
+
+.link-btn:hover {
+  color: var(--brown-dark);
+  text-decoration: underline;
 }
 
 .export-grid {
@@ -500,6 +567,8 @@ body {
 
   .app {
     margin-top: 18px;
+    padding-left: 12px;
+    padding-right: 12px;
   }
 
   .card {
@@ -517,12 +586,34 @@ body {
     grid-template-columns: 1fr 1fr;
   }
 
+  .hero {
+    padding-top: 8px;
+  }
+
+  .hero-icon {
+    width: 74px;
+    height: 74px;
+    font-size: 40px;
+  }
+
   .hero h1 {
     font-size: 28px;
   }
 
+  .theme-head {
+    align-items: flex-start;
+  }
+
+  .theme-head h2 {
+    font-size: 22px;
+  }
+
   .result-score {
     font-size: 40px;
+  }
+
+  .summary-table {
+    font-size: 14px;
   }
 
   .actions {
@@ -530,6 +621,32 @@ body {
   }
 
   .btn {
-    flex: 1;
+    flex: 1 1 145px;
+  }
+}
+
+@media (max-width: 420px) {
+  .brand strong {
+    font-size: 17px;
+  }
+
+  .card {
+    padding: 16px;
+  }
+
+  .score-options {
+    grid-template-columns: 1fr;
+  }
+
+  .score {
+    min-height: 58px;
+  }
+
+  .result-score {
+    font-size: 34px;
+  }
+
+  .result-percent {
+    font-size: 21px;
   }
 }
