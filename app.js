@@ -8,6 +8,7 @@ const STORAGE_KEY = "otjv-optech-draft-v2";
 
 const initialState = {
   step: 0,
+  level: "",
   activity: "",
   location: "",
   coachedName: "",
@@ -80,6 +81,84 @@ function esc(value = "") {
         "'": "&#39;",
       })[character]
   );
+}
+
+function sortAlphabetically(values) {
+  return [...values].sort((firstValue, secondValue) =>
+    firstValue.localeCompare(secondValue, "fr", {
+      sensitivity: "base",
+      ignorePunctuation: true,
+    })
+  );
+}
+
+function getLevels() {
+  return Array.isArray(window.OTJV_LISTS?.levels)
+    ? window.OTJV_LISTS.levels
+    : [];
+}
+
+function getCoachedPeople() {
+  const people = Array.isArray(
+    window.OTJV_LISTS?.coachedPeople
+  )
+    ? window.OTJV_LISTS.coachedPeople
+    : [];
+
+  return sortAlphabetically(people);
+}
+
+function getActivitiesByLevel(level) {
+  const activities = Array.isArray(
+    window.OTJV_LISTS?.activities
+  )
+    ? window.OTJV_LISTS.activities
+    : [];
+
+  return activities
+    .filter((activity) => {
+      if (!level) {
+        return true;
+      }
+
+      return activity.level === level;
+    })
+    .map((activity) => activity.name)
+    .sort((firstActivity, secondActivity) =>
+      firstActivity.localeCompare(
+        secondActivity,
+        "fr",
+        {
+          sensitivity: "base",
+          ignorePunctuation: true,
+        }
+      )
+    );
+}
+
+function createDatalistOptions(values) {
+  return values
+    .map(
+      (value) => `
+        <option value="${esc(value)}"></option>
+      `
+    )
+    .join("");
+}
+
+function createLevelOptions() {
+  return getLevels()
+    .map(
+      (level) => `
+        <option
+          value="${esc(level.value)}"
+          ${state.level === level.value ? "selected" : ""}
+        >
+          ${esc(level.label)}
+        </option>
+      `
+    )
+    .join("");
 }
 
 function getCoachedPeople() {
@@ -214,7 +293,9 @@ function showAlert(containerId, message) {
  * Page d'accueil.
  */
 function renderHome() {
-  const activities = getMaintenanceActivities();
+  const activities = getActivitiesByLevel(
+    state.level
+  );
 
   app.innerHTML = `
     <section class="card">
@@ -230,6 +311,24 @@ function renderHome() {
 
       <div class="grid">
         <div class="field">
+          <label for="level">
+            Niveau de l’activité
+          </label>
+
+          <select id="level">
+            <option value="">
+              Sélectionner un niveau
+            </option>
+
+            ${createLevelOptions()}
+          </select>
+
+          <small class="field-help">
+            Basic correspond au niveau 1 et Intermediate au niveau 2.
+          </small>
+        </div>
+
+        <div class="field">
           <label for="activity">
             Activité
           </label>
@@ -239,7 +338,11 @@ function renderHome() {
             type="text"
             list="activityList"
             value="${esc(state.activity)}"
-            placeholder="Sélectionner ou écrire une activité"
+            placeholder="${
+              state.level
+                ? "Sélectionner ou écrire une activité"
+                : "Choisir d’abord un niveau"
+            }"
             autocomplete="off"
           >
 
@@ -248,7 +351,12 @@ function renderHome() {
           </datalist>
 
           <small class="field-help">
-            Sélectionne une activité existante ou écris-en une nouvelle.
+            ${
+              state.level
+                ? `${activities.length} activité(s) disponible(s) pour le niveau ${esc(state.level)}.`
+                : "La liste sera filtrée après la sélection du niveau."
+            }
+            Tu peux également écrire une activité absente de la liste.
           </small>
         </div>
 
@@ -287,8 +395,44 @@ function renderHome() {
   bindInput("location", "location");
 
   document
+    .getElementById("level")
+    .addEventListener("change", (event) => {
+      const previousLevel = state.level;
+
+      state.level = event.target.value;
+
+      /*
+       * Si une activité de l'ancienne liste était sélectionnée,
+       * elle est effacée lors du changement de niveau.
+       *
+       * Une activité saisie manuellement est conservée.
+       */
+      const previousActivities =
+        getActivitiesByLevel(previousLevel);
+
+      if (
+        previousLevel !== state.level &&
+        previousActivities.includes(state.activity)
+      ) {
+        state.activity = "";
+      }
+
+      saveState();
+      renderHome();
+    });
+
+  document
     .getElementById("continue")
     .addEventListener("click", () => {
+      if (!state.level) {
+        showAlert(
+          "homeAlert",
+          "Sélectionne le niveau Basic ou Intermediate."
+        );
+
+        return;
+      }
+
       if (
         !state.activity.trim() ||
         !state.location.trim()
@@ -350,7 +494,8 @@ function renderPerson() {
           </datalist>
 
           <small class="field-help">
-            Sélectionne une personne existante ou écris un nouveau nom.
+            La liste est triée par ordre alphabétique.
+            Tu peux écrire un nouveau nom si nécessaire.
           </small>
         </div>
 
@@ -367,6 +512,15 @@ function renderPerson() {
             autocomplete="off"
           >
         </div>
+      </div>
+
+      <div class="information-summary">
+        <strong>Activité sélectionnée</strong>
+
+        <span>
+          ${esc(state.level)} —
+          ${esc(state.activity)}
+        </span>
       </div>
 
       <div id="personAlert"></div>
