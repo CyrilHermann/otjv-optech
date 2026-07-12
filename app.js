@@ -228,9 +228,9 @@ function setProgress() {
   progressText.textContent = "Finalisation";
 }
 function resetCoaching() {
-
   const confirmed = window.confirm(
-    "Voulez-vous vraiment recommencer le coaching ?\n\nToutes les données seront supprimées."
+    "Voulez-vous vraiment recommencer le coaching ?\n\n" +
+    "Toutes les données, réponses, signatures et commentaires seront supprimés."
   );
 
   if (!confirmed) {
@@ -241,16 +241,26 @@ function resetCoaching() {
 
   state = {
     ...initialState,
+    step: 0,
+    level: "",
+    activity: "",
+    location: "",
+    coachedName: "",
+    coachName: "",
     timestamp: new Date().toISOString(),
-    answers: {}
+    answers: {},
+    comment: "",
+    coachedSignature: "",
+    coachSignature: "",
   };
-document
-    .getElementById("restartApp")
-    ?.addEventListener(
-        "click",
-        resetCoaching
-    );
+
+  saveState();
   render();
+
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth",
+  });
 }
 /**
  * Affiche la page correspondant à l'étape actuelle.
