@@ -1,6 +1,9 @@
 /**
- * Fonctions communes liées aux données et aux scores.
- * Le fichier questions.js doit être chargé avant data.js.
+ * Gestion des données et des scores OTJV OPTECH.
+ *
+ * Une seule note est attribuée à chaque thème.
+ * Les questions A, B, C, etc. servent à déterminer
+ * la note globale du thème.
  */
 
 window.OTJVData = (() => {
@@ -9,19 +12,19 @@ window.OTJVData = (() => {
       value: "2.5",
       cssClass: "green",
       label: "Vert",
-      pointsLabel: "2,5 pts",
+      pointsLabel: "2,5 points",
     },
     {
       value: "1.5",
       cssClass: "orange",
       label: "Orange",
-      pointsLabel: "1,5 pt",
+      pointsLabel: "1,5 point",
     },
     {
       value: "0",
       cssClass: "red",
       label: "Rouge",
-      pointsLabel: "0 pt",
+      pointsLabel: "0 point",
     },
     {
       value: "NA",
@@ -42,70 +45,80 @@ window.OTJVData = (() => {
   }
 
   /**
-   * Calcule le score d'un thème.
-   *
-   * Chaque question vaut :
-   * - Vert : 2,5
-   * - Orange : 1,5
-   * - Rouge : 0
-   * - N/A : exclue du calcul
-   *
-   * Le résultat du thème reste ramené sur 2,5 points.
+   * Retourne l'identifiant unique d'un thème.
    */
-  function calculateThemeScore(theme, answers) {
-    const applicableAnswers = theme.questions
-      .map((question) => answers[question.id])
-      .filter((value) => value !== undefined && value !== "NA")
-      .map(Number)
-      .filter((value) => Number.isFinite(value));
-
-    if (applicableAnswers.length === 0) {
-      return null;
-    }
-
-    const total = applicableAnswers.reduce(
-      (sum, currentValue) => sum + currentValue,
-      0
-    );
-
-    return total / applicableAnswers.length;
+  function getThemeId(theme, index) {
+    return theme.id || `theme-${index + 1}`;
   }
 
   /**
-   * Calcule le résultat global.
-   * Les thèmes entièrement N/A sont exclus du total possible.
+   * Retourne la note d'un thème.
+   */
+  function getThemeScore(theme, index, answers) {
+    const themeId = getThemeId(theme, index);
+    const answer = answers[themeId];
+
+    if (answer === undefined) {
+      return undefined;
+    }
+
+    if (answer === "NA") {
+      return null;
+    }
+
+    const numericScore = Number(answer);
+
+    return Number.isFinite(numericScore)
+      ? numericScore
+      : undefined;
+  }
+
+  /**
+   * Calcule les résultats des huit thèmes.
+   *
+   * Chaque thème vaut au maximum 2,5 points.
+   * Un thème N/A est exclu du total possible.
    */
   function calculateTotals(answers) {
     const themes = getThemes();
 
-    const themeScores = themes.map((theme) =>
-      calculateThemeScore(theme, answers)
+    const scores = themes.map((theme, index) =>
+      getThemeScore(theme, index, answers)
     );
 
-    const applicableScores = themeScores.filter(
-      (score) => score !== null
+    const applicableScores = scores.filter(
+      (score) =>
+        score !== null &&
+        score !== undefined
     );
 
     const total = applicableScores.reduce(
-      (sum, currentValue) => sum + currentValue,
+      (sum, score) => sum + score,
       0
     );
 
     const possible = applicableScores.length * 2.5;
-    const percent = possible > 0 ? (total / possible) * 100 : 0;
+
+    const percent =
+      possible > 0
+        ? (total / possible) * 100
+        : 0;
 
     return {
-      scores: themeScores,
+      scores,
       total,
       possible,
       percent,
     };
   }
 
-  function getMissingQuestions(theme, answers) {
-    return theme.questions.filter(
-      (question) => answers[question.id] === undefined
-    );
+  /**
+   * Vérifie qu'une note a été choisie pour le thème.
+   */
+  function isThemeAnswered(theme, index, answers) {
+    const themeId = getThemeId(theme, index);
+
+    return answers[themeId] !== undefined;
   }
 
   function formatNumber(value) {
@@ -129,10 +142,12 @@ window.OTJVData = (() => {
       .slice(0, 10);
 
     const coachedName =
-      cleanFileNamePart(state.coachedName) || "Personne";
+      cleanFileNamePart(state.coachedName) ||
+      "Personne";
 
     const activity =
-      cleanFileNamePart(state.activity) || "Activite";
+      cleanFileNamePart(state.activity) ||
+      "Activite";
 
     return `${date}_${coachedName}_${activity}`;
   }
@@ -140,9 +155,10 @@ window.OTJVData = (() => {
   return {
     SCORE_OPTIONS,
     getThemes,
-    calculateThemeScore,
+    getThemeId,
+    getThemeScore,
     calculateTotals,
-    getMissingQuestions,
+    isThemeAnswered,
     formatNumber,
     createFileName,
   };
