@@ -44,6 +44,7 @@ function loadState() {
 
     return {
       ...initialState,
+      timestamp: new Date().toISOString(),
       answers: {},
     };
   }
@@ -83,6 +84,9 @@ function esc(value = "") {
   );
 }
 
+/**
+ * Trie une liste de textes par ordre alphabétique français.
+ */
 function sortAlphabetically(values) {
   return [...values].sort((firstValue, secondValue) =>
     firstValue.localeCompare(secondValue, "fr", {
@@ -92,12 +96,18 @@ function sortAlphabetically(values) {
   );
 }
 
+/**
+ * Retourne la liste des niveaux.
+ */
 function getLevels() {
   return Array.isArray(window.OTJV_LISTS?.levels)
     ? window.OTJV_LISTS.levels
     : [];
 }
 
+/**
+ * Retourne la liste alphabétique des personnes coachées.
+ */
 function getCoachedPeople() {
   const people = Array.isArray(
     window.OTJV_LISTS?.coachedPeople
@@ -108,6 +118,9 @@ function getCoachedPeople() {
   return sortAlphabetically(people);
 }
 
+/**
+ * Retourne les activités correspondant au niveau choisi.
+ */
 function getActivitiesByLevel(level) {
   const activities = Array.isArray(
     window.OTJV_LISTS?.activities
@@ -136,6 +149,9 @@ function getActivitiesByLevel(level) {
     );
 }
 
+/**
+ * Génère les options d'une datalist.
+ */
 function createDatalistOptions(values) {
   return values
     .map(
@@ -146,6 +162,9 @@ function createDatalistOptions(values) {
     .join("");
 }
 
+/**
+ * Génère les options de la liste des niveaux.
+ */
 function createLevelOptions() {
   return getLevels()
     .map(
@@ -156,30 +175,6 @@ function createLevelOptions() {
         >
           ${esc(level.label)}
         </option>
-      `
-    )
-    .join("");
-}
-
-function getCoachedPeople() {
-  return Array.isArray(window.OTJV_LISTS?.coachedPeople)
-    ? window.OTJV_LISTS.coachedPeople
-    : [];
-}
-
-function getMaintenanceActivities() {
-  return Array.isArray(
-    window.OTJV_LISTS?.maintenanceActivities
-  )
-    ? window.OTJV_LISTS.maintenanceActivities
-    : [];
-}
-
-function createDatalistOptions(values) {
-  return values
-    .map(
-      (value) => `
-        <option value="${esc(value)}"></option>
       `
     )
     .join("");
@@ -222,11 +217,16 @@ function setProgress() {
 
     progressText.textContent =
       `Thème ${currentTheme} sur ${THEMES.length}`;
+
     return;
   }
 
   progressText.textContent = "Finalisation";
 }
+
+/**
+ * Recommence entièrement le coaching.
+ */
 function resetCoaching() {
   const confirmed = window.confirm(
     "Voulez-vous vraiment recommencer le coaching ?\n\n" +
@@ -262,6 +262,7 @@ function resetCoaching() {
     behavior: "smooth",
   });
 }
+
 /**
  * Affiche la page correspondant à l'étape actuelle.
  */
@@ -390,6 +391,7 @@ function renderHome() {
                 ? `${activities.length} activité(s) disponible(s) pour le niveau ${esc(state.level)}.`
                 : "La liste sera filtrée après la sélection du niveau."
             }
+
             Tu peux également écrire une activité absente de la liste.
           </small>
         </div>
@@ -428,63 +430,75 @@ function renderHome() {
   bindInput("activity", "activity");
   bindInput("location", "location");
 
-  document
-    .getElementById("level")
-    .addEventListener("change", (event) => {
-      const previousLevel = state.level;
+  const levelSelect =
+    document.getElementById("level");
 
-      state.level = event.target.value;
+  if (levelSelect) {
+    levelSelect.addEventListener(
+      "change",
+      (event) => {
+        const previousLevel = state.level;
+        const previousActivities =
+          getActivitiesByLevel(previousLevel);
 
-      /*
-       * Si une activité de l'ancienne liste était sélectionnée,
-       * elle est effacée lors du changement de niveau.
-       *
-       * Une activité saisie manuellement est conservée.
-       */
-      const previousActivities =
-        getActivitiesByLevel(previousLevel);
+        state.level = event.target.value;
 
-      if (
-        previousLevel !== state.level &&
-        previousActivities.includes(state.activity)
-      ) {
-        state.activity = "";
+        /*
+         * Si l'activité sélectionnée appartenait
+         * à l'ancien niveau, elle est effacée.
+         * Une activité saisie manuellement est conservée.
+         */
+        if (
+          previousLevel !== state.level &&
+          previousActivities.includes(state.activity)
+        ) {
+          state.activity = "";
+        }
+
+        saveState();
+        renderHome();
       }
+    );
+  }
 
-      saveState();
-      renderHome();
-    });
+  const continueButton =
+    document.getElementById("continue");
 
-  document
-    .getElementById("continue")
-    .addEventListener("click", () => {
-      if (!state.level) {
-        showAlert(
-          "homeAlert",
-          "Sélectionne le niveau Basic ou Intermediate."
-        );
+  if (continueButton) {
+    continueButton.addEventListener(
+      "click",
+      () => {
+        if (!state.level) {
+          showAlert(
+            "homeAlert",
+            "Sélectionne le niveau Basic ou Intermediate."
+          );
 
-        return;
+          return;
+        }
+
+        if (
+          !state.activity.trim() ||
+          !state.location.trim()
+        ) {
+          showAlert(
+            "homeAlert",
+            "Renseigne l’activité et l’emplacement."
+          );
+
+          return;
+        }
+
+        state.timestamp =
+          new Date().toISOString();
+
+        state.step = 1;
+
+        saveState();
+        render();
       }
-
-      if (
-        !state.activity.trim() ||
-        !state.location.trim()
-      ) {
-        showAlert(
-          "homeAlert",
-          "Renseigne l’activité et l’emplacement."
-        );
-
-        return;
-      }
-
-      state.timestamp = new Date().toISOString();
-      state.step = 1;
-
-      saveState();
-      render();
-    });
+    );
+  }
 }
 
 /**
@@ -582,32 +596,44 @@ function renderPerson() {
   bindInput("coached", "coachedName");
   bindInput("coach", "coachName");
 
-  document
-    .getElementById("back")
-    .addEventListener("click", () => {
-      state.step = 0;
+  const backButton =
+    document.getElementById("back");
 
-      saveState();
-      render();
-    });
+  if (backButton) {
+    backButton.addEventListener(
+      "click",
+      () => {
+        state.step = 0;
 
-  document
-    .getElementById("start")
-    .addEventListener("click", () => {
-      if (!state.coachedName.trim()) {
-        showAlert(
-          "personAlert",
-          "Renseigne le nom de la personne coachée."
-        );
-
-        return;
+        saveState();
+        render();
       }
+    );
+  }
 
-      state.step = 2;
+  const startButton =
+    document.getElementById("start");
 
-      saveState();
-      render();
-    });
+  if (startButton) {
+    startButton.addEventListener(
+      "click",
+      () => {
+        if (!state.coachedName.trim()) {
+          showAlert(
+            "personAlert",
+            "Renseigne le nom de la personne coachée."
+          );
+
+          return;
+        }
+
+        state.step = 2;
+
+        saveState();
+        render();
+      }
+    );
+  }
 }
 
 /**
@@ -742,48 +768,63 @@ function renderTheme(index) {
   document
     .querySelectorAll(".score")
     .forEach((button) => {
-      button.addEventListener("click", () => {
-        state.answers[button.dataset.theme] =
-          button.dataset.val;
+      button.addEventListener(
+        "click",
+        () => {
+          state.answers[button.dataset.theme] =
+            button.dataset.val;
+
+          saveState();
+          renderTheme(index);
+        }
+      );
+    });
+
+  const backButton =
+    document.getElementById("back");
+
+  if (backButton) {
+    backButton.addEventListener(
+      "click",
+      () => {
+        state.step -= 1;
 
         saveState();
-        renderTheme(index);
-      });
-    });
-
-  document
-    .getElementById("back")
-    .addEventListener("click", () => {
-      state.step -= 1;
-
-      saveState();
-      render();
-    });
-
-  document
-    .getElementById("next")
-    .addEventListener("click", () => {
-      const answered =
-        OTJVData.isThemeAnswered(
-          theme,
-          index,
-          state.answers
-        );
-
-      if (!answered) {
-        showAlert(
-          "themeAlert",
-          "Sélectionne une note globale : Vert, Orange, Rouge ou N/A."
-        );
-
-        return;
+        render();
       }
+    );
+  }
 
-      state.step += 1;
+  const nextButton =
+    document.getElementById("next");
 
-      saveState();
-      render();
-    });
+  if (nextButton) {
+    nextButton.addEventListener(
+      "click",
+      () => {
+        const answered =
+          OTJVData.isThemeAnswered(
+            theme,
+            index,
+            state.answers
+          );
+
+        if (!answered) {
+          showAlert(
+            "themeAlert",
+            "Sélectionne une note globale : Vert, Orange, Rouge ou N/A."
+          );
+
+          return;
+        }
+
+        state.step += 1;
+
+        saveState();
+        render();
+      }
+    );
+  }
 }
 
 /**
@@ -967,46 +1008,52 @@ function renderSummary() {
 
   setupSignatures();
 
-  document
-    .getElementById("back")
-    .addEventListener("click", () => {
-      captureSignatures();
+  const backButton =
+    document.getElementById("back");
 
-      state.step = THEMES.length + 1;
+  if (backButton) {
+    backButton.addEventListener(
+      "click",
+      () => {
+        captureSignatures();
 
-      saveState();
-      render();
-    });
+        state.step = THEMES.length + 1;
 
-  document
-    .getElementById("new")
-    .addEventListener("click", () => {
-      const confirmed = window.confirm(
-        "Effacer ce coaching et recommencer ?"
-      );
-
-      if (!confirmed) {
-        return;
+        saveState();
+        render();
       }
+    );
+  }
 
-      localStorage.removeItem(STORAGE_KEY);
+  const newButton =
+    document.getElementById("new");
 
-      state = {
-        ...initialState,
-        timestamp: new Date().toISOString(),
-        answers: {},
-      };
+  if (newButton) {
+    newButton.addEventListener(
+      "click",
+      resetCoaching
+    );
+  }
 
-      render();
-    });
+  const excelButton =
+    document.getElementById("excel");
 
-  document
-    .getElementById("excel")
-    .addEventListener("click", exportExcel);
+  if (excelButton) {
+    excelButton.addEventListener(
+      "click",
+      exportExcel
+    );
+  }
 
-  document
-    .getElementById("pdf")
-    .addEventListener("click", exportPdf);
+  const pdfButton =
+    document.getElementById("pdf");
+
+  if (pdfButton) {
+    pdfButton.addEventListener(
+      "click",
+      exportPdf
+    );
+  }
 }
 
 /**
@@ -1071,6 +1118,10 @@ function checkDependencies() {
     missingDependencies.push("questions.js");
   }
 
+  if (!window.OTJV_LISTS) {
+    missingDependencies.push("lists.js");
+  }
+
   if (!window.OTJVData) {
     missingDependencies.push("data.js");
   }
@@ -1094,8 +1145,7 @@ function checkDependencies() {
   app.innerHTML = `
     <section class="card">
       <div class="alert">
-        Certains fichiers nécessaires ne sont pas
-        chargés :
+        Certains fichiers nécessaires ne sont pas chargés :
         ${esc(missingDependencies.join(", "))}.
       </div>
     </section>
@@ -1110,17 +1160,30 @@ function checkDependencies() {
 }
 
 /**
- * Démarrage de l'application.
+ * Relie le bouton fixe de la barre supérieure.
  */
-if (checkDependencies()) {
-  render();
-}
+function setupRestartButton() {
+  const restartButton =
+    document.getElementById("restartApp");
 
-const restartButton = document.getElementById("restartApp");
+  if (!restartButton) {
+    console.warn(
+      "Le bouton #restartApp est introuvable dans index.html."
+    );
 
-if (restartButton) {
+    return;
+  }
+
   restartButton.addEventListener(
     "click",
     resetCoaching
   );
+}
+
+/**
+ * Démarrage de l'application.
+ */
+if (checkDependencies()) {
+  setupRestartButton();
+  render();
 }
