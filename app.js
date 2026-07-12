@@ -4,18 +4,29 @@ const app = document.getElementById("app");
 const progressBar = document.getElementById("progressBar");
 const progressText = document.getElementById("progressText");
 
-const STORAGE_KEY = "otjv-optech-draft-v2";
+const STORAGE_KEY = "otjv-optech-draft-v3";
 
 const initialState = {
   step: 0,
+
   level: "",
+
   activity: "",
+  activityEntryMode: "list",
+
   location: "",
+
   coachedName: "",
+  coachedEntryMode: "list",
+
   coachName: "",
+
   timestamp: new Date().toISOString(),
+
   answers: {},
+
   comment: "",
+
   coachedSignature: "",
   coachSignature: "",
 };
@@ -34,7 +45,12 @@ function loadState() {
     return {
       ...initialState,
       ...savedState,
-      answers: savedState.answers || {},
+
+      answers:
+        savedState.answers &&
+        typeof savedState.answers === "object"
+          ? savedState.answers
+          : {},
     };
   } catch (error) {
     console.error(
@@ -88,19 +104,26 @@ function esc(value = "") {
  * Trie une liste de textes par ordre alphabétique français.
  */
 function sortAlphabetically(values) {
-  return [...values].sort((firstValue, secondValue) =>
-    firstValue.localeCompare(secondValue, "fr", {
-      sensitivity: "base",
-      ignorePunctuation: true,
-    })
+  return [...values].sort(
+    (firstValue, secondValue) =>
+      firstValue.localeCompare(
+        secondValue,
+        "fr",
+        {
+          sensitivity: "base",
+          ignorePunctuation: true,
+        }
+      )
   );
 }
 
 /**
- * Retourne la liste des niveaux.
+ * Retourne les niveaux disponibles.
  */
 function getLevels() {
-  return Array.isArray(window.OTJV_LISTS?.levels)
+  return Array.isArray(
+    window.OTJV_LISTS?.levels
+  )
     ? window.OTJV_LISTS.levels
     : [];
 }
@@ -137,26 +160,39 @@ function getActivitiesByLevel(level) {
       return activity.level === level;
     })
     .map((activity) => activity.name)
-    .sort((firstActivity, secondActivity) =>
-      firstActivity.localeCompare(
-        secondActivity,
-        "fr",
-        {
-          sensitivity: "base",
-          ignorePunctuation: true,
-        }
-      )
+    .sort(
+      (firstActivity, secondActivity) =>
+        firstActivity.localeCompare(
+          secondActivity,
+          "fr",
+          {
+            sensitivity: "base",
+            ignorePunctuation: true,
+          }
+        )
     );
 }
 
 /**
- * Génère les options d'une datalist.
+ * Génère les options d'un select.
  */
-function createDatalistOptions(values) {
+function createSelectOptions(
+  values,
+  selectedValue
+) {
   return values
     .map(
       (value) => `
-        <option value="${esc(value)}"></option>
+        <option
+          value="${esc(value)}"
+          ${
+            selectedValue === value
+              ? "selected"
+              : ""
+          }
+        >
+          ${esc(value)}
+        </option>
       `
     )
     .join("");
@@ -171,7 +207,11 @@ function createLevelOptions() {
       (level) => `
         <option
           value="${esc(level.value)}"
-          ${state.level === level.value ? "selected" : ""}
+          ${
+            state.level === level.value
+              ? "selected"
+              : ""
+          }
         >
           ${esc(level.label)}
         </option>
@@ -192,7 +232,8 @@ function setProgress() {
   );
 
   if (progressBar) {
-    progressBar.style.width = `${percentage}%`;
+    progressBar.style.width =
+      `${percentage}%`;
   }
 
   if (!progressText) {
@@ -200,12 +241,16 @@ function setProgress() {
   }
 
   if (state.step === 0) {
-    progressText.textContent = "Préparation";
+    progressText.textContent =
+      "Préparation";
+
     return;
   }
 
   if (state.step === 1) {
-    progressText.textContent = "Identification";
+    progressText.textContent =
+      "Identification";
+
     return;
   }
 
@@ -213,7 +258,8 @@ function setProgress() {
     state.step >= 2 &&
     state.step < THEMES.length + 2
   ) {
-    const currentTheme = state.step - 1;
+    const currentTheme =
+      state.step - 1;
 
     progressText.textContent =
       `Thème ${currentTheme} sur ${THEMES.length}`;
@@ -221,7 +267,8 @@ function setProgress() {
     return;
   }
 
-  progressText.textContent = "Finalisation";
+  progressText.textContent =
+    "Finalisation";
 }
 
 /**
@@ -237,19 +284,34 @@ function resetCoaching() {
     return;
   }
 
-  localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(
+    STORAGE_KEY
+  );
 
   state = {
     ...initialState,
+
     step: 0,
+
     level: "",
+
     activity: "",
+    activityEntryMode: "list",
+
     location: "",
+
     coachedName: "",
+    coachedEntryMode: "list",
+
     coachName: "",
-    timestamp: new Date().toISOString(),
+
+    timestamp:
+      new Date().toISOString(),
+
     answers: {},
+
     comment: "",
+
     coachedSignature: "",
     coachSignature: "",
   };
@@ -281,9 +343,13 @@ function render() {
 
   if (
     state.step >= 2 &&
-    state.step < THEMES.length + 2
+    state.step <
+      THEMES.length + 2
   ) {
-    renderTheme(state.step - 2);
+    renderTheme(
+      state.step - 2
+    );
+
     return;
   }
 
@@ -291,27 +357,38 @@ function render() {
 }
 
 /**
- * Relie un champ de formulaire à une propriété de state.
+ * Relie un champ texte à une propriété de state.
  */
 function bindInput(id, key) {
-  const element = document.getElementById(id);
+  const element =
+    document.getElementById(id);
 
   if (!element) {
     return;
   }
 
-  element.addEventListener("input", (event) => {
-    state[key] = event.target.value;
-    saveState();
-  });
+  element.addEventListener(
+    "input",
+    (event) => {
+      state[key] =
+        event.target.value;
+
+      saveState();
+    }
+  );
 }
 
 /**
  * Affiche un message d'erreur.
  */
-function showAlert(containerId, message) {
+function showAlert(
+  containerId,
+  message
+) {
   const container =
-    document.getElementById(containerId);
+    document.getElementById(
+      containerId
+    );
 
   if (!container) {
     return;
@@ -328,14 +405,32 @@ function showAlert(containerId, message) {
  * Page d'accueil.
  */
 function renderHome() {
-  const activities = getActivitiesByLevel(
-    state.level
-  );
+  const activities =
+    getActivitiesByLevel(
+      state.level
+    );
+
+  const activityIsInList =
+    activities.includes(
+      state.activity
+    );
+
+  if (
+    state.activity &&
+    !activityIsInList &&
+    state.activityEntryMode !==
+      "manual"
+  ) {
+    state.activityEntryMode =
+      "manual";
+  }
 
   app.innerHTML = `
     <section class="card">
       <div class="hero">
-        <div class="hero-icon">⚙️</div>
+        <div class="hero-icon">
+          ⚙️
+        </div>
 
         <h1>OTJV OPTECH</h1>
 
@@ -359,40 +454,78 @@ function renderHome() {
           </select>
 
           <small class="field-help">
-            Basic correspond au niveau 1 et Intermediate au niveau 2.
+            Basic correspond au niveau 1
+            et Intermediate au niveau 2.
           </small>
         </div>
 
         <div class="field">
-          <label for="activity">
+          <label for="activitySelect">
             Activité
           </label>
 
-          <input
-            id="activity"
-            type="text"
-            list="activityList"
-            value="${esc(state.activity)}"
-            placeholder="${
-              state.level
-                ? "Sélectionner ou écrire une activité"
-                : "Choisir d’abord un niveau"
-            }"
-            autocomplete="off"
+          <select
+            id="activitySelect"
+            ${
+              !state.level
+                ? "disabled"
+                : ""
+            }
           >
+            <option value="">
+              ${
+                state.level
+                  ? "Sélectionner une activité"
+                  : "Choisir d’abord un niveau"
+              }
+            </option>
 
-          <datalist id="activityList">
-            ${createDatalistOptions(activities)}
-          </datalist>
+            ${createSelectOptions(
+              activities,
+              state.activityEntryMode ===
+                "list"
+                ? state.activity
+                : ""
+            )}
+
+            <option
+              value="__manual__"
+              ${
+                state.activityEntryMode ===
+                "manual"
+                  ? "selected"
+                  : ""
+              }
+            >
+              Autre — saisir manuellement
+            </option>
+          </select>
+
+          ${
+            state.activityEntryMode ===
+            "manual"
+              ? `
+                <input
+                  id="activityManual"
+                  type="text"
+                  value="${esc(
+                    state.activity
+                  )}"
+                  placeholder="Écrire l’activité"
+                  autocomplete="off"
+                >
+              `
+              : ""
+          }
 
           <small class="field-help">
             ${
               state.level
-                ? `${activities.length} activité(s) disponible(s) pour le niveau ${esc(state.level)}.`
+                ? `${activities.length} activité(s) disponible(s) pour le niveau ${esc(
+                    state.level
+                  )}.`
                 : "La liste sera filtrée après la sélection du niveau."
             }
-
-            Tu peux également écrire une activité absente de la liste.
           </small>
         </div>
 
@@ -404,7 +537,9 @@ function renderHome() {
           <input
             id="location"
             type="text"
-            value="${esc(state.location)}"
+            value="${esc(
+              state.location
+            )}"
             placeholder="Ex. Ligne 4"
             autocomplete="off"
           >
@@ -427,123 +562,222 @@ function renderHome() {
     </section>
   `;
 
-  bindInput("activity", "activity");
-  bindInput("location", "location");
+  bindInput(
+    "location",
+    "location"
+  );
 
   const levelSelect =
-    document.getElementById("level");
+    document.getElementById(
+      "level"
+    );
 
-  if (levelSelect) {
-    levelSelect.addEventListener(
-      "change",
-      (event) => {
-        const previousLevel = state.level;
-        const previousActivities =
-          getActivitiesByLevel(previousLevel);
+  levelSelect?.addEventListener(
+    "change",
+    (event) => {
+      state.level =
+        event.target.value;
 
-        state.level = event.target.value;
+      state.activity = "";
+      state.activityEntryMode =
+        "list";
 
-        /*
-         * Si l'activité sélectionnée appartenait
-         * à l'ancien niveau, elle est effacée.
-         * Une activité saisie manuellement est conservée.
-         */
-        if (
-          previousLevel !== state.level &&
-          previousActivities.includes(state.activity)
-        ) {
-          state.activity = "";
-        }
+      saveState();
+      renderHome();
+    }
+  );
+
+  const activitySelect =
+    document.getElementById(
+      "activitySelect"
+    );
+
+  activitySelect?.addEventListener(
+    "change",
+    (event) => {
+      const selectedValue =
+        event.target.value;
+
+      if (
+        selectedValue ===
+        "__manual__"
+      ) {
+        state.activityEntryMode =
+          "manual";
+
+        state.activity = "";
 
         saveState();
         renderHome();
+
+        return;
       }
+
+      state.activityEntryMode =
+        "list";
+
+      state.activity =
+        selectedValue;
+
+      saveState();
+    }
+  );
+
+  const activityManual =
+    document.getElementById(
+      "activityManual"
     );
-  }
+
+  activityManual?.addEventListener(
+    "input",
+    (event) => {
+      state.activity =
+        event.target.value;
+
+      saveState();
+    }
+  );
 
   const continueButton =
-    document.getElementById("continue");
-
-  if (continueButton) {
-    continueButton.addEventListener(
-      "click",
-      () => {
-        if (!state.level) {
-          showAlert(
-            "homeAlert",
-            "Sélectionne le niveau Basic ou Intermediate."
-          );
-
-          return;
-        }
-
-        if (
-          !state.activity.trim() ||
-          !state.location.trim()
-        ) {
-          showAlert(
-            "homeAlert",
-            "Renseigne l’activité et l’emplacement."
-          );
-
-          return;
-        }
-
-        state.timestamp =
-          new Date().toISOString();
-
-        state.step = 1;
-
-        saveState();
-        render();
-      }
+    document.getElementById(
+      "continue"
     );
-  }
+
+  continueButton?.addEventListener(
+    "click",
+    () => {
+      if (!state.level) {
+        showAlert(
+          "homeAlert",
+          "Sélectionne le niveau Basic ou Intermediate."
+        );
+
+        return;
+      }
+
+      if (
+        !state.activity.trim() ||
+        !state.location.trim()
+      ) {
+        showAlert(
+          "homeAlert",
+          "Renseigne l’activité et l’emplacement."
+        );
+
+        return;
+      }
+
+      state.timestamp =
+        new Date().toISOString();
+
+      state.step = 1;
+
+      saveState();
+      render();
+    }
+  );
 }
 
 /**
  * Page d'identification du coaché et du coach.
  */
 function renderPerson() {
-  const date = new Date(state.timestamp);
-  const coachedPeople = getCoachedPeople();
+  const date = new Date(
+    state.timestamp
+  );
+
+  const coachedPeople =
+    getCoachedPeople();
+
+  const coachedPersonIsInList =
+    coachedPeople.includes(
+      state.coachedName
+    );
+
+  if (
+    state.coachedName &&
+    !coachedPersonIsInList &&
+    state.coachedEntryMode !==
+      "manual"
+  ) {
+    state.coachedEntryMode =
+      "manual";
+  }
 
   app.innerHTML = `
     <section class="card">
       <div class="theme-head">
-        <div class="badge">👤</div>
+        <div class="badge">
+          👤
+        </div>
 
         <div>
-          <h2>Informations du coaching</h2>
+          <h2>
+            Informations du coaching
+          </h2>
 
           <p>
-            ${esc(date.toLocaleString("fr-FR"))}
+            ${esc(
+              date.toLocaleString(
+                "fr-FR"
+              )
+            )}
           </p>
         </div>
       </div>
 
       <div class="grid">
         <div class="field">
-          <label for="coached">
+          <label for="coachedSelect">
             Personne coachée
           </label>
 
-          <input
-            id="coached"
-            type="text"
-            list="coachedPeopleList"
-            value="${esc(state.coachedName)}"
-            placeholder="Sélectionner ou écrire un nom"
-            autocomplete="off"
-          >
+          <select id="coachedSelect">
+            <option value="">
+              Sélectionner une personne
+            </option>
 
-          <datalist id="coachedPeopleList">
-            ${createDatalistOptions(coachedPeople)}
-          </datalist>
+            ${createSelectOptions(
+              coachedPeople,
+              state.coachedEntryMode ===
+                "list"
+                ? state.coachedName
+                : ""
+            )}
+
+            <option
+              value="__manual__"
+              ${
+                state.coachedEntryMode ===
+                "manual"
+                  ? "selected"
+                  : ""
+              }
+            >
+              Autre — saisir manuellement
+            </option>
+          </select>
+
+          ${
+            state.coachedEntryMode ===
+            "manual"
+              ? `
+                <input
+                  id="coachedManual"
+                  type="text"
+                  value="${esc(
+                    state.coachedName
+                  )}"
+                  placeholder="Nom et prénom"
+                  autocomplete="off"
+                >
+              `
+              : ""
+          }
 
           <small class="field-help">
-            La liste est triée par ordre alphabétique.
-            Tu peux écrire un nouveau nom si nécessaire.
+            Les personnes sont classées
+            par ordre alphabétique.
           </small>
         </div>
 
@@ -555,7 +789,9 @@ function renderPerson() {
           <input
             id="coach"
             type="text"
-            value="${esc(state.coachName)}"
+            value="${esc(
+              state.coachName
+            )}"
             placeholder="Nom et prénom"
             autocomplete="off"
           >
@@ -563,10 +799,13 @@ function renderPerson() {
       </div>
 
       <div class="information-summary">
-        <strong>Activité sélectionnée</strong>
+        <strong>
+          Activité sélectionnée
+        </strong>
 
         <span>
-          ${esc(state.level)} —
+          ${esc(state.level)}
+          —
           ${esc(state.activity)}
         </span>
       </div>
@@ -593,14 +832,65 @@ function renderPerson() {
     </section>
   `;
 
-  bindInput("coached", "coachedName");
-  bindInput("coach", "coachName");
+  bindInput(
+    "coach",
+    "coachName"
+  );
 
-  const backButton =
-    document.getElementById("back");
+  const coachedSelect =
+    document.getElementById(
+      "coachedSelect"
+    );
 
-  if (backButton) {
-    backButton.addEventListener(
+  coachedSelect?.addEventListener(
+    "change",
+    (event) => {
+      const selectedValue =
+        event.target.value;
+
+      if (
+        selectedValue ===
+        "__manual__"
+      ) {
+        state.coachedEntryMode =
+          "manual";
+
+        state.coachedName = "";
+
+        saveState();
+        renderPerson();
+
+        return;
+      }
+
+      state.coachedEntryMode =
+        "list";
+
+      state.coachedName =
+        selectedValue;
+
+      saveState();
+    }
+  );
+
+  const coachedManual =
+    document.getElementById(
+      "coachedManual"
+    );
+
+  coachedManual?.addEventListener(
+    "input",
+    (event) => {
+      state.coachedName =
+        event.target.value;
+
+      saveState();
+    }
+  );
+
+  document
+    .getElementById("back")
+    ?.addEventListener(
       "click",
       () => {
         state.step = 0;
@@ -609,16 +899,15 @@ function renderPerson() {
         render();
       }
     );
-  }
 
-  const startButton =
-    document.getElementById("start");
-
-  if (startButton) {
-    startButton.addEventListener(
+  document
+    .getElementById("start")
+    ?.addEventListener(
       "click",
       () => {
-        if (!state.coachedName.trim()) {
+        if (
+          !state.coachedName.trim()
+        ) {
           showAlert(
             "personAlert",
             "Renseigne le nom de la personne coachée."
@@ -633,30 +922,29 @@ function renderPerson() {
         render();
       }
     );
-  }
 }
 
 /**
  * Affiche un thème.
- *
- * Toutes les lettres sont affichées comme questions,
- * mais une seule note globale est attribuée au thème.
  */
 function renderTheme(index) {
   const theme = THEMES[index];
 
   if (!theme) {
-    state.step = THEMES.length + 2;
+    state.step =
+      THEMES.length + 2;
 
     saveState();
     render();
+
     return;
   }
 
-  const themeId = OTJVData.getThemeId(
-    theme,
-    index
-  );
+  const themeId =
+    OTJVData.getThemeId(
+      theme,
+      index
+    );
 
   const selectedValue =
     state.answers[themeId];
@@ -669,17 +957,22 @@ function renderTheme(index) {
         </div>
 
         <div>
-          <h2>${esc(theme.title)}</h2>
+          <h2>
+            ${esc(theme.title)}
+          </h2>
 
           <p>
-            Pose les questions ci-dessous, puis attribue
-            une seule note globale au thème.
+            Pose les questions ci-dessous,
+            puis attribue une seule note
+            globale au thème.
           </p>
         </div>
       </div>
 
       <div class="question-group">
-        <h3>Questions à poser</h3>
+        <h3>
+          Questions à poser
+        </h3>
 
         <div class="question-list">
           ${theme.questions
@@ -688,10 +981,14 @@ function renderTheme(index) {
                 <div class="question">
                   <div class="question-title">
                     <span class="qid">
-                      ${esc(question.id)}.
+                      ${esc(
+                        question.id
+                      )}.
                     </span>
 
-                    ${esc(question.text)}
+                    ${esc(
+                      question.text
+                    )}
                   </div>
                 </div>
               `
@@ -701,18 +998,21 @@ function renderTheme(index) {
       </div>
 
       <div class="theme-score-block">
-        <h3>Note globale du thème</h3>
+        <h3>
+          Note globale du thème
+        </h3>
 
         <p>
-          Sélectionne la note correspondant à
-          l'ensemble des réponses du groupe.
+          Sélectionne la note correspondant
+          à l'ensemble des réponses du groupe.
         </p>
 
         <div class="score-options">
           ${OTJVData.SCORE_OPTIONS
             .map((option) => {
               const selected =
-                selectedValue === option.value;
+                selectedValue ===
+                option.value;
 
               return `
                 <button
@@ -720,16 +1020,28 @@ function renderTheme(index) {
                   class="
                     score
                     ${option.cssClass}
-                    ${selected ? "selected" : ""}
+                    ${
+                      selected
+                        ? "selected"
+                        : ""
+                    }
                   "
-                  data-theme="${esc(themeId)}"
-                  data-val="${esc(option.value)}"
+                  data-theme="${esc(
+                    themeId
+                  )}"
+                  data-val="${esc(
+                    option.value
+                  )}"
                   aria-pressed="${selected}"
                 >
-                  ${esc(option.label)}
+                  ${esc(
+                    option.label
+                  )}
 
                   <small>
-                    ${esc(option.pointsLabel)}
+                    ${esc(
+                      option.pointsLabel
+                    )}
                   </small>
                 </button>
               `;
@@ -755,7 +1067,8 @@ function renderTheme(index) {
           id="next"
         >
           ${
-            index === THEMES.length - 1
+            index ===
+            THEMES.length - 1
               ? "Voir le résultat"
               : "Suivant"
           }
@@ -771,8 +1084,9 @@ function renderTheme(index) {
       button.addEventListener(
         "click",
         () => {
-          state.answers[button.dataset.theme] =
-            button.dataset.val;
+          state.answers[
+            button.dataset.theme
+          ] = button.dataset.val;
 
           saveState();
           renderTheme(index);
@@ -780,11 +1094,9 @@ function renderTheme(index) {
       );
     });
 
-  const backButton =
-    document.getElementById("back");
-
-  if (backButton) {
-    backButton.addEventListener(
+  document
+    .getElementById("back")
+    ?.addEventListener(
       "click",
       () => {
         state.step -= 1;
@@ -793,13 +1105,10 @@ function renderTheme(index) {
         render();
       }
     );
-  }
 
-  const nextButton =
-    document.getElementById("next");
-
-  if (nextButton) {
-    nextButton.addEventListener(
+  document
+    .getElementById("next")
+    ?.addEventListener(
       "click",
       () => {
         const answered =
@@ -824,7 +1133,6 @@ function renderTheme(index) {
         render();
       }
     );
-  }
 }
 
 /**
@@ -840,7 +1148,9 @@ function totals() {
  * Formate un nombre.
  */
 function fmt(number) {
-  return OTJVData.formatNumber(number);
+  return OTJVData.formatNumber(
+    number
+  );
 }
 
 /**
@@ -852,13 +1162,18 @@ function renderSummary() {
   app.innerHTML = `
     <section class="card">
       <div class="theme-head">
-        <div class="badge">✓</div>
+        <div class="badge">
+          ✓
+        </div>
 
         <div>
-          <h2>Résultat du coaching</h2>
+          <h2>
+            Résultat du coaching
+          </h2>
 
           <p>
-            Vérification, commentaire et signatures
+            Vérification, commentaire
+            et signatures
           </p>
         </div>
       </div>
@@ -871,7 +1186,8 @@ function renderSummary() {
         </div>
 
         <div class="result-percent">
-          ${fmt(results.percent)} %
+          ${fmt(results.percent)}
+          %
         </div>
       </div>
 
@@ -884,31 +1200,41 @@ function renderSummary() {
         </thead>
 
         <tbody>
-          ${THEMES.map((theme, index) => {
-            const score =
-              results.scores[index];
+          ${THEMES.map(
+            (theme, index) => {
+              const score =
+                results.scores[index];
 
-            let scoreText = "Non répondu";
+              let scoreText =
+                "Non répondu";
 
-            if (score === null) {
-              scoreText = "N/A";
-            } else if (score !== undefined) {
-              scoreText = `${fmt(score)} / 2,5`;
+              if (score === null) {
+                scoreText = "N/A";
+              } else if (
+                score !== undefined
+              ) {
+                scoreText =
+                  `${fmt(score)} / 2,5`;
+              }
+
+              return `
+                <tr>
+                  <td>
+                    ${esc(
+                      theme.number
+                    )}.
+                    ${esc(
+                      theme.title
+                    )}
+                  </td>
+
+                  <td>
+                    ${scoreText}
+                  </td>
+                </tr>
+              `;
             }
-
-            return `
-              <tr>
-                <td>
-                  ${esc(theme.number)}.
-                  ${esc(theme.title)}
-                </td>
-
-                <td>
-                  ${scoreText}
-                </td>
-              </tr>
-            `;
-          }).join("")}
+          ).join("")}
         </tbody>
       </table>
 
@@ -920,7 +1246,9 @@ function renderSummary() {
         <textarea
           id="comment"
           placeholder="Observations générales et axes d’amélioration…"
-        >${esc(state.comment)}</textarea>
+        >${esc(
+          state.comment
+        )}</textarea>
       </div>
 
       <div class="sign-grid">
@@ -929,7 +1257,9 @@ function renderSummary() {
             Signature de la personne coachée
           </h3>
 
-          <canvas id="sigCoached"></canvas>
+          <canvas
+            id="sigCoached"
+          ></canvas>
 
           <div class="signature-actions">
             <button
@@ -947,7 +1277,9 @@ function renderSummary() {
             Signature du coach
           </h3>
 
-          <canvas id="sigCoach"></canvas>
+          <canvas
+            id="sigCoach"
+          ></canvas>
 
           <div class="signature-actions">
             <button
@@ -998,66 +1330,58 @@ function renderSummary() {
       </div>
 
       <p class="note">
-        Les données restent uniquement dans ce
-        navigateur jusqu’au téléchargement.
+        Les données restent uniquement
+        dans ce navigateur jusqu’au téléchargement.
       </p>
     </section>
   `;
 
-  bindInput("comment", "comment");
+  bindInput(
+    "comment",
+    "comment"
+  );
 
   setupSignatures();
 
-  const backButton =
-    document.getElementById("back");
-
-  if (backButton) {
-    backButton.addEventListener(
+  document
+    .getElementById("back")
+    ?.addEventListener(
       "click",
       () => {
         captureSignatures();
 
-        state.step = THEMES.length + 1;
+        state.step =
+          THEMES.length + 1;
 
         saveState();
         render();
       }
     );
-  }
 
-  const newButton =
-    document.getElementById("new");
-
-  if (newButton) {
-    newButton.addEventListener(
+  document
+    .getElementById("new")
+    ?.addEventListener(
       "click",
       resetCoaching
     );
-  }
 
-  const excelButton =
-    document.getElementById("excel");
-
-  if (excelButton) {
-    excelButton.addEventListener(
+  document
+    .getElementById("excel")
+    ?.addEventListener(
       "click",
       exportExcel
     );
-  }
 
-  const pdfButton =
-    document.getElementById("pdf");
-
-  if (pdfButton) {
-    pdfButton.addEventListener(
+  document
+    .getElementById("pdf")
+    ?.addEventListener(
       "click",
       exportPdf
     );
-  }
 }
 
 /**
- * Initialise les deux zones de signature.
+ * Initialise les zones de signature.
  */
 function setupSignatures() {
   OTJVSignature.setup(
@@ -1094,7 +1418,9 @@ async function exportExcel() {
     return;
   }
 
-  await OTJVExcel.downloadSafely(state);
+  await OTJVExcel.downloadSafely(
+    state
+  );
 }
 
 /**
@@ -1105,7 +1431,9 @@ function exportPdf() {
     return;
   }
 
-  OTJVPdf.downloadSafely(state);
+  OTJVPdf.downloadSafely(
+    state
+  );
 }
 
 /**
@@ -1115,38 +1443,57 @@ function checkDependencies() {
   const missingDependencies = [];
 
   if (!Array.isArray(THEMES)) {
-    missingDependencies.push("questions.js");
+    missingDependencies.push(
+      "questions.js"
+    );
   }
 
   if (!window.OTJV_LISTS) {
-    missingDependencies.push("lists.js");
+    missingDependencies.push(
+      "lists.js"
+    );
   }
 
   if (!window.OTJVData) {
-    missingDependencies.push("data.js");
+    missingDependencies.push(
+      "data.js"
+    );
   }
 
   if (!window.OTJVSignature) {
-    missingDependencies.push("signature.js");
+    missingDependencies.push(
+      "signature.js"
+    );
   }
 
   if (!window.OTJVExcel) {
-    missingDependencies.push("excel.js");
+    missingDependencies.push(
+      "excel.js"
+    );
   }
 
   if (!window.OTJVPdf) {
-    missingDependencies.push("pdf.js");
+    missingDependencies.push(
+      "pdf.js"
+    );
   }
 
-  if (missingDependencies.length === 0) {
+  if (
+    missingDependencies.length === 0
+  ) {
     return true;
   }
 
   app.innerHTML = `
     <section class="card">
       <div class="alert">
-        Certains fichiers nécessaires ne sont pas chargés :
-        ${esc(missingDependencies.join(", "))}.
+        Certains fichiers nécessaires
+        ne sont pas chargés :
+        ${esc(
+          missingDependencies.join(
+            ", "
+          )
+        )}.
       </div>
     </section>
   `;
@@ -1164,7 +1511,9 @@ function checkDependencies() {
  */
 function setupRestartButton() {
   const restartButton =
-    document.getElementById("restartApp");
+    document.getElementById(
+      "restartApp"
+    );
 
   if (!restartButton) {
     console.warn(
