@@ -82,6 +82,30 @@ function esc(value = "") {
   );
 }
 
+function getCoachedPeople() {
+  return Array.isArray(window.OTJV_LISTS?.coachedPeople)
+    ? window.OTJV_LISTS.coachedPeople
+    : [];
+}
+
+function getMaintenanceActivities() {
+  return Array.isArray(
+    window.OTJV_LISTS?.maintenanceActivities
+  )
+    ? window.OTJV_LISTS.maintenanceActivities
+    : [];
+}
+
+function createDatalistOptions(values) {
+  return values
+    .map(
+      (value) => `
+        <option value="${esc(value)}"></option>
+      `
+    )
+    .join("");
+}
+
 /**
  * Met à jour la barre de progression.
  */
@@ -190,6 +214,8 @@ function showAlert(containerId, message) {
  * Page d'accueil.
  */
 function renderHome() {
+  const activities = getMaintenanceActivities();
+
   app.innerHTML = `
     <section class="card">
       <div class="hero">
@@ -211,10 +237,19 @@ function renderHome() {
           <input
             id="activity"
             type="text"
+            list="activityList"
             value="${esc(state.activity)}"
-            placeholder="Ex. Maintenance préventive"
+            placeholder="Sélectionner ou écrire une activité"
             autocomplete="off"
           >
+
+          <datalist id="activityList">
+            ${createDatalistOptions(activities)}
+          </datalist>
+
+          <small class="field-help">
+            Sélectionne une activité existante ou écris-en une nouvelle.
+          </small>
         </div>
 
         <div class="field">
@@ -279,6 +314,7 @@ function renderHome() {
  */
 function renderPerson() {
   const date = new Date(state.timestamp);
+  const coachedPeople = getCoachedPeople();
 
   app.innerHTML = `
     <section class="card">
@@ -303,10 +339,19 @@ function renderPerson() {
           <input
             id="coached"
             type="text"
+            list="coachedPeopleList"
             value="${esc(state.coachedName)}"
-            placeholder="Nom et prénom"
+            placeholder="Sélectionner ou écrire un nom"
             autocomplete="off"
           >
+
+          <datalist id="coachedPeopleList">
+            ${createDatalistOptions(coachedPeople)}
+          </datalist>
+
+          <small class="field-help">
+            Sélectionne une personne existante ou écris un nouveau nom.
+          </small>
         </div>
 
         <div class="field">
