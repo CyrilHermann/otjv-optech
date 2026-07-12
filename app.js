@@ -244,7 +244,12 @@ function resetCoaching() {
     timestamp: new Date().toISOString(),
     answers: {}
   };
-
+document
+    .getElementById("restartApp")
+    ?.addEventListener(
+        "click",
+        resetCoaching
+    );
   render();
 }
 /**
