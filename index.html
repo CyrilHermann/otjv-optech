@@ -28,31 +28,43 @@
 
 <body>
   <header class="topbar">
+
     <div class="brand">
-      <div class="logo">
-        <img
-          src="assets/logo.jpg"
-          alt="Logo OTJV OPTECH"
-          loading="eager"
-          draggable="false"
-        >
-      </div>
 
-      <div>
-        <strong>OTJV OPTECH</strong>
+        <div class="logo">
+            <img
+                src="assets/logo.jpg"
+                alt="Logo OTJV OPTECH"
+                loading="eager"
+                draggable="false">
+        </div>
 
-        <small>
-          Outil de coaching technique
-        </small>
-      </div>
+        <div>
+            <strong>OTJV OPTECH</strong>
+            <small>Outil de coaching technique</small>
+        </div>
+
     </div>
 
-    <div
-      id="progressText"
-      class="progress-text"
-      aria-live="polite"
-    ></div>
-  </header>
+    <div class="topbar-right">
+
+        <button
+            id="restartApp"
+            class="restart-button"
+            type="button">
+
+            🔄 Nouveau coaching
+
+        </button>
+
+        <div
+            id="progressText"
+            class="progress-text">
+        </div>
+
+    </div>
+
+</header>
 
   <div
     class="progress"
