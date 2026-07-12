@@ -650,3 +650,42 @@ input[list] {
     font-size: 21px;
   }
 }
+.field select {
+  width: 100%;
+  padding: 14px 42px 14px 15px;
+  border: 1px solid #cfc3ba;
+  border-radius: 12px;
+  font: inherit;
+  outline: none;
+  background-color: #ffffff;
+  color: var(--text);
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.field select:focus {
+  border-color: var(--brown);
+  box-shadow: 0 0 0 3px rgba(111, 78, 55, 0.14);
+}
+
+.information-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 14px 16px;
+  margin: 4px 0 18px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--brown-soft);
+}
+
+.information-summary strong {
+  color: var(--brown-dark);
+  font-size: 13px;
+}
+
+.information-summary span {
+  line-height: 1.4;
+}
