@@ -188,44 +188,51 @@ window.OTJVExcel = (() => {
     );
   }
 
-  /**
-   * Calcule le total à partir des huit notes.
-   *
-   * Un thème N/A vaut zéro point dans le total obtenu.
-   * Le résultat reste calculé sur un maximum fixe de 20.
-   */
-  function calculateFixedResults(state) {
-    const themes = OTJVData.getThemes();
+ /**
+ * Calcule le résultat en excluant les thèmes N/A.
+ *
+ * Exemple :
+ * - 8 thèmes applicables : maximum 20 points
+ * - 1 thème N/A : maximum 17,5 points
+ * - 2 thèmes N/A : maximum 15 points
+ */
+function calculateFixedResults(state) {
+  const themes = OTJVData.getThemes();
 
-    const scores = themes.map((theme, index) =>
-      OTJVData.getThemeScore(
-        theme,
-        index,
-        state.answers
-      )
-    );
+  const scores = themes.map((theme, index) =>
+    OTJVData.getThemeScore(
+      theme,
+      index,
+      state.answers
+    )
+  );
 
-    const total = scores.reduce((sum, score) => {
-      if (
-        score === null ||
-        score === undefined
-      ) {
-        return sum;
-      }
+  const applicableScores = scores.filter(
+    (score) =>
+      score !== null &&
+      score !== undefined
+  );
 
-      return sum + Number(score);
-    }, 0);
+  const total = applicableScores.reduce(
+    (sum, score) => sum + Number(score),
+    0
+  );
 
-    const possible = 20;
-    const percentage = total / possible;
+  const possible =
+    applicableScores.length * 2.5;
 
-    return {
-      scores,
-      total,
-      possible,
-      percentage,
-    };
-  }
+  const percentage =
+    possible > 0
+      ? total / possible
+      : 0;
+
+  return {
+    scores,
+    total,
+    possible,
+    percentage,
+  };
+}
 
   /**
    * Charge le modèle Excel.
