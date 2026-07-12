@@ -545,7 +545,42 @@ input[list] {
 .hidden {
   display: none !important;
 }
+.topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
 
+.restart-button {
+
+    background: rgba(255,255,255,.15);
+
+    color: white;
+
+    border: 1px solid rgba(255,255,255,.25);
+
+    border-radius: 8px;
+
+    padding: 6px 12px;
+
+    font-size: 12px;
+
+    cursor: pointer;
+
+    transition: .2s;
+}
+
+.restart-button:hover {
+
+    background: rgba(255,255,255,.28);
+
+}
+
+.restart-button:active{
+
+    transform: scale(.97);
+
+}
 @media (max-width: 650px) {
   .topbar {
     padding: 10px 14px;
@@ -619,6 +654,12 @@ input[list] {
 
   .btn {
     flex: 1 1 145px;
+  }
+  .restart-button{
+
+    font-size:11px;
+
+    padding:5px 8px;
   }
 }
 
