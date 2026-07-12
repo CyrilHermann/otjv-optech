@@ -1,32 +1,842 @@
 const THEMES = window.OTJV_THEMES;
-const app = document.getElementById('app');
-const progressBar = document.getElementById('progressBar');
-const progressText = document.getElementById('progressText');
-const STORAGE_KEY = 'otjv-optech-draft-v1';
-const initial = {step:0,activity:'',location:'',coachedName:'',coachName:'',timestamp:new Date().toISOString(),answers:{},comment:'',coachedSignature:'',coachSignature:''};
+const app = document.getElementById("app");
+const progressBar = document.getElementById("progressBar");
+const progressText = document.getElementById("progressText");
+
+const STORAGE_KEY = "otjv-optech-draft-v1";
+
+const initial = {
+  step: 0,
+  activity: "",
+  location: "",
+  coachedName: "",
+  coachName: "",
+  timestamp: new Date().toISOString(),
+  answers: {},
+  comment: "",
+  coachedSignature: "",
+  coachSignature: "",
+};
+
 let state = loadState();
-let signaturePads = [];
 
-function loadState(){try{return {...initial,...JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}')}}catch{return {...initial}}}
-function saveState(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state))}
-function esc(s=''){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function setProgress(){const total=THEMES.length+3;const pct=Math.min(100,(state.step/total)*100);progressBar.style.width=pct+'%';progressText.textContent=state.step===0?'Préparation':state.step<=THEMES.length+1?`Étape ${state.step} sur ${THEMES.length+2}`:'Finalisation'}
-function render(){setProgress();signaturePads=[];if(state.step===0)return renderHome();if(state.step===1)return renderPerson();if(state.step>=2&&state.step<THEMES.length+2)return renderTheme(state.step-2);return renderSummary()}
-function input(id,key){document.getElementById(id).addEventListener('input',e=>{state[key]=e.target.value;saveState()})}
+/**
+ * Charge le brouillon enregistré dans le navigateur.
+ */
+function loadState() {
+  try {
+    const savedState = JSON.parse(
+      localStorage.getItem(STORAGE_KEY) || "{}"
+    );
 
-function renderHome(){app.innerHTML=`<section class="card"><div class="hero"><div class="hero-icon">⚙️</div><h1>OTJV OPTECH</h1><p>Coaching technique — Étape 2</p></div><div class="grid"><div class="field"><label for="activity">Activité</label><input id="activity" value="${esc(state.activity)}" placeholder="Ex. Maintenance préventive"></div><div class="field"><label for="location">Emplacement</label><input id="location" value="${esc(state.location)}" placeholder="Ex. Ligne 4"></div></div><div id="homeAlert"></div><div class="actions"><span></span><button class="btn btn-primary" id="continue">Continuer →</button></div></section>`;input('activity','activity');input('location','location');document.getElementById('continue').onclick=()=>{if(!state.activity.trim()||!state.location.trim()){document.getElementById('homeAlert').innerHTML='<div class="alert">Renseigne l’activité et l’emplacement.</div>';return}state.timestamp=new Date().toISOString();state.step=1;saveState();render()}}
-function renderPerson(){const d=new Date(state.timestamp);app.innerHTML=`<section class="card"><div class="theme-head"><div class="badge">👤</div><div><h2>Informations du coaching</h2><p>${d.toLocaleString('fr-FR')}</p></div></div><div class="grid"><div class="field"><label for="coached">Personne coachée</label><input id="coached" value="${esc(state.coachedName)}" placeholder="Nom et prénom"></div><div class="field"><label for="coach">Coach</label><input id="coach" value="${esc(state.coachName)}" placeholder="Nom et prénom"></div></div><div id="personAlert"></div><div class="actions"><button class="btn btn-secondary" id="back">← Retour</button><button class="btn btn-primary" id="start">Commencer le coaching →</button></div></section>`;input('coached','coachedName');input('coach','coachName');document.getElementById('back').onclick=()=>{state.step=0;saveState();render()};document.getElementById('start').onclick=()=>{if(!state.coachedName.trim()){document.getElementById('personAlert').innerHTML='<div class="alert">Renseigne le nom de la personne coachée.</div>';return}state.step=2;saveState();render()}}
-function renderTheme(index){const t=THEMES[index];app.innerHTML=`<section class="card"><div class="theme-head"><div class="badge">${t.number}</div><div><h2>${esc(t.title)}</h2><p>${t.questions.length} question${t.questions.length>1?'s':''}</p></div></div>${t.questions.map(q=>questionHtml(q)).join('')}<div id="themeAlert"></div><div class="actions"><button class="btn btn-secondary" id="back">← Précédent</button><button class="btn btn-primary" id="next">${index===THEMES.length-1?'Voir le résultat':'Suivant'} →</button></div></section>`;document.querySelectorAll('.score').forEach(b=>b.onclick=()=>{state.answers[b.dataset.q]=b.dataset.val;saveState();renderTheme(index)});document.getElementById('back').onclick=()=>{state.step--;saveState();render()};document.getElementById('next').onclick=()=>{const missing=t.questions.filter(q=>state.answers[q.id]===undefined);if(missing.length){document.getElementById('themeAlert').innerHTML=`<div class="alert">Réponds à toutes les questions, y compris avec N/A si nécessaire.</div>`;return}state.step++;saveState();render()}}
-function questionHtml(q){const opts=[['2.5','green','Vert','2,5 pts'],['1.5','orange','Orange','1,5 pt'],['0','red','Rouge','0 pt'],['NA','na','N/A','Non applicable']];return `<div class="question"><div class="question-title"><span class="qid">${q.id}.</span>${esc(q.text)}</div><div class="score-options">${opts.map(([v,c,l,p])=>`<button type="button" class="score ${c} ${state.answers[q.id]===v?'selected':''}" data-q="${q.id}" data-val="${v}">${l}<small>${p}</small></button>`).join('')}</div></div>`}
-function themeScore(t){const vals=t.questions.map(q=>state.answers[q.id]).filter(v=>v!=='NA'&&v!==undefined).map(Number);if(!vals.length)return null;return vals.reduce((a,b)=>a+b,0)/vals.length}
-function totals(){const scores=THEMES.map(themeScore);const applicable=scores.filter(v=>v!==null);const total=applicable.reduce((a,b)=>a+b,0);const possible=applicable.length*2.5;return {scores,total,possible,percent:possible?total/possible*100:0}}
-function renderSummary(){const x=totals();app.innerHTML=`<section class="card"><div class="theme-head"><div class="badge">✓</div><div><h2>Résultat du coaching</h2><p>Vérification, commentaire et signatures</p></div></div><div class="result-box"><div class="result-score">${fmt(x.total)} / ${fmt(x.possible)}</div><div class="result-percent">${fmt(x.percent)} %</div></div><table class="summary-table"><thead><tr><th>Thème</th><th>Score</th></tr></thead><tbody>${THEMES.map((t,i)=>`<tr><td>${t.number}. ${esc(t.title)}</td><td>${x.scores[i]===null?'N/A':fmt(x.scores[i])+' / 2,5'}</td></tr>`).join('')}</tbody></table><div class="field"><label for="comment">Commentaire</label><textarea id="comment" placeholder="Observations générales et axes d’amélioration…">${esc(state.comment)}</textarea></div><div class="sign-grid"><div class="signature-box"><h3>Signature de la personne coachée</h3><canvas id="sigCoached"></canvas><div class="signature-actions"><button class="link-btn" id="clearCoached">Effacer</button></div></div><div class="signature-box"><h3>Signature du coach</h3><canvas id="sigCoach"></canvas><div class="signature-actions"><button class="link-btn" id="clearCoach">Effacer</button></div></div></div><div class="export-grid"><button class="btn btn-success" id="excel">Télécharger Excel</button><button class="btn btn-danger" id="pdf">Télécharger PDF</button></div><div class="actions"><button class="btn btn-secondary" id="back">← Modifier</button><button class="btn btn-secondary" id="new">Nouveau coaching</button></div><p class="note">Les données restent uniquement dans ce navigateur jusqu’au téléchargement. Elles ne sont envoyées vers aucun serveur.</p></section>`;input('comment','comment');setupSignatures();document.getElementById('back').onclick=()=>{captureSignatures();state.step=THEMES.length+1;saveState();render()};document.getElementById('new').onclick=()=>{if(confirm('Effacer ce coaching et recommencer ?')){localStorage.removeItem(STORAGE_KEY);state={...initial,timestamp:new Date().toISOString(),answers:{}};render()}};document.getElementById('excel').onclick=exportExcel;document.getElementById('pdf').onclick=exportPdf}
-function setupSignatures(){[['sigCoached','coachedSignature','clearCoached'],['sigCoach','coachSignature','clearCoach']].forEach(([id,key,clear])=>{const canvas=document.getElementById(id);resizeCanvas(canvas);const pad=new SignaturePad(canvas,{minWidth:1,maxWidth:2.5,penColor:'#172033'});if(state[key])pad.fromDataURL(state[key]);pad.addEventListener('endStroke',()=>{state[key]=pad.toDataURL('image/png');saveState()});document.getElementById(clear).onclick=()=>{pad.clear();state[key]='';saveState()};signaturePads.push([pad,key])})}
-function resizeCanvas(canvas){const ratio=Math.max(window.devicePixelRatio||1,1);const rect=canvas.getBoundingClientRect();canvas.width=rect.width*ratio;canvas.height=160*ratio;canvas.getContext('2d').scale(ratio,ratio)}
-function captureSignatures(){signaturePads.forEach(([p,k])=>{if(!p.isEmpty())state[k]=p.toDataURL('image/png')});saveState()}
-function fmt(n){return Number(n).toLocaleString('fr-FR',{maximumFractionDigits:2})}
-function safeName(){const d=new Date(state.timestamp).toISOString().slice(0,10);const clean=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9]+/g,'_').replace(/^_|_$/g,'');return `${d}_${clean(state.coachedName)}_${clean(state.activity)}`}
-function requireSignatures(){captureSignatures();if(!state.coachedSignature||!state.coachSignature){alert('Les deux signatures sont nécessaires avant la génération.');return false}return true}
-async function exportExcel(){if(!requireSignatures())return;try{const res=await fetch('template.xlsx');if(!res.ok)throw new Error('Modèle Excel introuvable');const buf=await res.arrayBuffer();const wb=new ExcelJS.Workbook();await wb.xlsx.load(buf);const ws=wb.getWorksheet('Feuil1')||wb.worksheets[0];const x=totals();ws.getCell('A6').value=state.coachedName;ws.getCell('D6').value=state.coachName;ws.getCell('F6').value=new Date(state.timestamp);ws.getCell('F6').numFmt='dd/mm/yyyy hh:mm';ws.getCell('A9').value=state.activity;ws.getCell('F9').value=state.location;THEMES.forEach((t,i)=>{const row=14+i;['E','F','G','H'].forEach(c=>ws.getCell(`${c}${row}`).value='');const score=x.scores[i];if(score===null)ws.getCell(`E${row}`).value='X';else if(score>=2)ws.getCell(`F${row}`).value='X';else if(score>0)ws.getCell(`G${row}`).value='X';else ws.getCell(`H${row}`).value='X'});ws.getCell('F24').value=x.total;ws.getCell('F25').value=x.possible;ws.getCell('F26').value=x.percent/100;ws.getCell('F26').numFmt='0.0%';ws.getCell('I24').value=state.comment;const addImg=(data,range)=>{const id=wb.addImage({base64:data,extension:'png'});ws.addImage(id,range)};addImg(state.coachedSignature,{tl:{col:0.2,row:21.2},ext:{width:190,height:75}});addImg(state.coachSignature,{tl:{col:2.5,row:21.2},ext:{width:190,height:75}});const out=await wb.xlsx.writeBuffer();saveAs(new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),safeName()+'.xlsx')}catch(e){console.error(e);alert('Impossible de générer le fichier Excel : '+e.message)}}
-async function exportPdf(){if(!requireSignatures())return;const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:'mm',format:'a4'});const x=totals();let y=16;doc.setFont('helvetica','bold');doc.setFontSize(18);doc.text('OTJV STEP 2 OPTECH',105,y,{align:'center'});y+=10;doc.setFontSize(10);doc.setFont('helvetica','normal');doc.text(`Personne coachée : ${state.coachedName}`,15,y);doc.text(`Coach : ${state.coachName||'-'}`,110,y);y+=7;doc.text(`Date : ${new Date(state.timestamp).toLocaleString('fr-FR')}`,15,y);y+=7;doc.text(`Activité : ${state.activity}`,15,y);doc.text(`Emplacement : ${state.location}`,110,y);y+=10;doc.setFont('helvetica','bold');doc.text('Résultats',15,y);y+=6;doc.setFont('helvetica','normal');THEMES.forEach((t,i)=>{doc.text(`${t.number}. ${t.title}`,18,y);doc.text(x.scores[i]===null?'N/A':`${fmt(x.scores[i])} / 2,5`,180,y,{align:'right'});y+=6});y+=3;doc.setFont('helvetica','bold');doc.setFontSize(14);doc.text(`Total : ${fmt(x.total)} / ${fmt(x.possible)} — ${fmt(x.percent)} %`,105,y,{align:'center'});y+=10;doc.setFontSize(10);doc.text('Commentaire',15,y);y+=5;doc.setFont('helvetica','normal');const lines=doc.splitTextToSize(state.comment||'Aucun commentaire.',180);doc.text(lines,15,y);y+=Math.max(14,lines.length*5)+5;if(y>220){doc.addPage();y=18}doc.setFont('helvetica','bold');doc.text('Signatures',15,y);y+=6;doc.setFont('helvetica','normal');doc.text('Personne coachée',15,y);doc.text('Coach',110,y);doc.addImage(state.coachedSignature,'PNG',15,y+3,75,30);doc.addImage(state.coachSignature,'PNG',110,y+3,75,30);doc.save(safeName()+'.pdf')}
-render();
+    return {
+      ...initial,
+      ...savedState,
+      answers: savedState.answers || {},
+    };
+  } catch (error) {
+    console.error(
+      "Impossible de charger le brouillon.",
+      error
+    );
+
+    return {
+      ...initial,
+      answers: {},
+    };
+  }
+}
+
+/**
+ * Sauvegarde le coaching dans le navigateur.
+ */
+function saveState() {
+  try {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify(state)
+    );
+  } catch (error) {
+    console.error(
+      "Impossible de sauvegarder le brouillon.",
+      error
+    );
+  }
+}
+
+/**
+ * Protège les textes insérés dans le HTML.
+ */
+function esc(value = "") {
+  return String(value).replace(
+    /[&<>"']/g,
+    (character) =>
+      ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+      })[character]
+  );
+}
+
+/**
+ * Met à jour la barre de progression.
+ */
+function setProgress() {
+  const totalSteps = THEMES.length + 3;
+
+  const percentage = Math.min(
+    100,
+    (state.step / totalSteps) * 100
+  );
+
+  progressBar.style.width = `${percentage}%`;
+
+  if (state.step === 0) {
+    progressText.textContent = "Préparation";
+    return;
+  }
+
+  if (state.step <= THEMES.length + 1) {
+    progressText.textContent =
+      `Étape ${state.step} sur ${THEMES.length + 2}`;
+    return;
+  }
+
+  progressText.textContent = "Finalisation";
+}
+
+/**
+ * Affiche la page correspondant à l'étape actuelle.
+ */
+function render() {
+  setProgress();
+
+  if (state.step === 0) {
+    renderHome();
+    return;
+  }
+
+  if (state.step === 1) {
+    renderPerson();
+    return;
+  }
+
+  if (
+    state.step >= 2 &&
+    state.step < THEMES.length + 2
+  ) {
+    renderTheme(state.step - 2);
+    return;
+  }
+
+  renderSummary();
+}
+
+/**
+ * Relie un champ à une propriété de l'état.
+ */
+function bindInput(id, key) {
+  const element = document.getElementById(id);
+
+  if (!element) {
+    return;
+  }
+
+  element.addEventListener("input", (event) => {
+    state[key] = event.target.value;
+    saveState();
+  });
+}
+
+/**
+ * Affiche un message d'erreur dans une zone.
+ */
+function showAlert(containerId, message) {
+  const container =
+    document.getElementById(containerId);
+
+  if (!container) {
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="alert">
+      ${esc(message)}
+    </div>
+  `;
+}
+
+/**
+ * Page d'accueil : activité et emplacement.
+ */
+function renderHome() {
+  app.innerHTML = `
+    <section class="card">
+      <div class="hero">
+        <div class="hero-icon">⚙️</div>
+
+        <h1>OTJV OPTECH</h1>
+
+        <p>Coaching technique — Étape 2</p>
+      </div>
+
+      <div class="grid">
+        <div class="field">
+          <label for="activity">
+            Activité
+          </label>
+
+          <input
+            id="activity"
+            value="${esc(state.activity)}"
+            placeholder="Ex. Maintenance préventive"
+            autocomplete="off"
+          >
+        </div>
+
+        <div class="field">
+          <label for="location">
+            Emplacement
+          </label>
+
+          <input
+            id="location"
+            value="${esc(state.location)}"
+            placeholder="Ex. Ligne 4"
+            autocomplete="off"
+          >
+        </div>
+      </div>
+
+      <div id="homeAlert"></div>
+
+      <div class="actions">
+        <span></span>
+
+        <button
+          type="button"
+          class="btn btn-primary"
+          id="continue"
+        >
+          Continuer →
+        </button>
+      </div>
+    </section>
+  `;
+
+  bindInput("activity", "activity");
+  bindInput("location", "location");
+
+  document
+    .getElementById("continue")
+    .addEventListener("click", () => {
+      if (
+        !state.activity.trim() ||
+        !state.location.trim()
+      ) {
+        showAlert(
+          "homeAlert",
+          "Renseigne l’activité et l’emplacement."
+        );
+
+        return;
+      }
+
+      /*
+       * L'horodatage est enregistré au moment
+       * où le coaching est réellement commencé.
+       */
+      state.timestamp = new Date().toISOString();
+      state.step = 1;
+
+      saveState();
+      render();
+    });
+}
+
+/**
+ * Page d'identification de la personne coachée.
+ */
+function renderPerson() {
+  const date = new Date(state.timestamp);
+
+  app.innerHTML = `
+    <section class="card">
+      <div class="theme-head">
+        <div class="badge">👤</div>
+
+        <div>
+          <h2>Informations du coaching</h2>
+
+          <p>
+            ${esc(date.toLocaleString("fr-FR"))}
+          </p>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="field">
+          <label for="coached">
+            Personne coachée
+          </label>
+
+          <input
+            id="coached"
+            value="${esc(state.coachedName)}"
+            placeholder="Nom et prénom"
+            autocomplete="off"
+          >
+        </div>
+
+        <div class="field">
+          <label for="coach">
+            Coach
+          </label>
+
+          <input
+            id="coach"
+            value="${esc(state.coachName)}"
+            placeholder="Nom et prénom"
+            autocomplete="off"
+          >
+        </div>
+      </div>
+
+      <div id="personAlert"></div>
+
+      <div class="actions">
+        <button
+          type="button"
+          class="btn btn-secondary"
+          id="back"
+        >
+          ← Retour
+        </button>
+
+        <button
+          type="button"
+          class="btn btn-primary"
+          id="start"
+        >
+          Commencer le coaching →
+        </button>
+      </div>
+    </section>
+  `;
+
+  bindInput("coached", "coachedName");
+  bindInput("coach", "coachName");
+
+  document
+    .getElementById("back")
+    .addEventListener("click", () => {
+      state.step = 0;
+
+      saveState();
+      render();
+    });
+
+  document
+    .getElementById("start")
+    .addEventListener("click", () => {
+      if (!state.coachedName.trim()) {
+        showAlert(
+          "personAlert",
+          "Renseigne le nom de la personne coachée."
+        );
+
+        return;
+      }
+
+      state.step = 2;
+
+      saveState();
+      render();
+    });
+}
+
+/**
+ * Affiche une page de thème.
+ */
+function renderTheme(index) {
+  const theme = THEMES[index];
+
+  if (!theme) {
+    state.step = THEMES.length + 2;
+    saveState();
+    render();
+    return;
+  }
+
+  app.innerHTML = `
+    <section class="card">
+      <div class="theme-head">
+        <div class="badge">
+          ${esc(theme.number)}
+        </div>
+
+        <div>
+          <h2>${esc(theme.title)}</h2>
+
+          <p>
+            ${theme.questions.length}
+            question${theme.questions.length > 1 ? "s" : ""}
+          </p>
+        </div>
+      </div>
+
+      ${theme.questions
+        .map((question) => questionHtml(question))
+        .join("")}
+
+      <div id="themeAlert"></div>
+
+      <div class="actions">
+        <button
+          type="button"
+          class="btn btn-secondary"
+          id="back"
+        >
+          ← Précédent
+        </button>
+
+        <button
+          type="button"
+          class="btn btn-primary"
+          id="next"
+        >
+          ${
+            index === THEMES.length - 1
+              ? "Voir le résultat"
+              : "Suivant"
+          }
+          →
+        </button>
+      </div>
+    </section>
+  `;
+
+  document
+    .querySelectorAll(".score")
+    .forEach((button) => {
+      button.addEventListener("click", () => {
+        state.answers[button.dataset.q] =
+          button.dataset.val;
+
+        saveState();
+        renderTheme(index);
+      });
+    });
+
+  document
+    .getElementById("back")
+    .addEventListener("click", () => {
+      state.step -= 1;
+
+      saveState();
+      render();
+    });
+
+  document
+    .getElementById("next")
+    .addEventListener("click", () => {
+      const missingQuestions =
+        OTJVData.getMissingQuestions(
+          theme,
+          state.answers
+        );
+
+      if (missingQuestions.length > 0) {
+        showAlert(
+          "themeAlert",
+          "Réponds à toutes les questions, y compris avec N/A si nécessaire."
+        );
+
+        return;
+      }
+
+      state.step += 1;
+
+      saveState();
+      render();
+    });
+}
+
+/**
+ * Génère le HTML d'une question.
+ */
+function questionHtml(question) {
+  const options = OTJVData.SCORE_OPTIONS;
+
+  return `
+    <div class="question">
+      <div class="question-title">
+        <span class="qid">
+          ${esc(question.id)}.
+        </span>
+
+        ${esc(question.text)}
+      </div>
+
+      <div class="score-options">
+        ${options
+          .map((option) => {
+            const selected =
+              state.answers[question.id] ===
+              option.value;
+
+            return `
+              <button
+                type="button"
+                class="
+                  score
+                  ${option.cssClass}
+                  ${selected ? "selected" : ""}
+                "
+                data-q="${esc(question.id)}"
+                data-val="${esc(option.value)}"
+                aria-pressed="${selected}"
+              >
+                ${esc(option.label)}
+
+                <small>
+                  ${esc(option.pointsLabel)}
+                </small>
+              </button>
+            `;
+          })
+          .join("")}
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Retourne les résultats du coaching.
+ */
+function totals() {
+  return OTJVData.calculateTotals(
+    state.answers
+  );
+}
+
+/**
+ * Formate un nombre en français.
+ */
+function fmt(number) {
+  return OTJVData.formatNumber(number);
+}
+
+/**
+ * Affiche la page de résultat et de signatures.
+ */
+function renderSummary() {
+  const results = totals();
+
+  app.innerHTML = `
+    <section class="card">
+      <div class="theme-head">
+        <div class="badge">✓</div>
+
+        <div>
+          <h2>Résultat du coaching</h2>
+
+          <p>
+            Vérification, commentaire et signatures
+          </p>
+        </div>
+      </div>
+
+      <div class="result-box">
+        <div class="result-score">
+          ${fmt(results.total)}
+          /
+          ${fmt(results.possible)}
+        </div>
+
+        <div class="result-percent">
+          ${fmt(results.percent)} %
+        </div>
+      </div>
+
+      <table class="summary-table">
+        <thead>
+          <tr>
+            <th>Thème</th>
+            <th>Score</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          ${THEMES.map((theme, index) => {
+            const score =
+              results.scores[index];
+
+            return `
+              <tr>
+                <td>
+                  ${esc(theme.number)}.
+                  ${esc(theme.title)}
+                </td>
+
+                <td>
+                  ${
+                    score === null
+                      ? "N/A"
+                      : `${fmt(score)} / 2,5`
+                  }
+                </td>
+              </tr>
+            `;
+          }).join("")}
+        </tbody>
+      </table>
+
+      <div class="field">
+        <label for="comment">
+          Commentaire
+        </label>
+
+        <textarea
+          id="comment"
+          placeholder="Observations générales et axes d’amélioration…"
+        >${esc(state.comment)}</textarea>
+      </div>
+
+      <div class="sign-grid">
+        <div class="signature-box">
+          <h3>
+            Signature de la personne coachée
+          </h3>
+
+          <canvas id="sigCoached"></canvas>
+
+          <div class="signature-actions">
+            <button
+              type="button"
+              class="link-btn"
+              id="clearCoached"
+            >
+              Effacer
+            </button>
+          </div>
+        </div>
+
+        <div class="signature-box">
+          <h3>
+            Signature du coach
+          </h3>
+
+          <canvas id="sigCoach"></canvas>
+
+          <div class="signature-actions">
+            <button
+              type="button"
+              class="link-btn"
+              id="clearCoach"
+            >
+              Effacer
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="export-grid">
+        <button
+          type="button"
+          class="btn btn-success"
+          id="excel"
+        >
+          Télécharger Excel
+        </button>
+
+        <button
+          type="button"
+          class="btn btn-danger"
+          id="pdf"
+        >
+          Télécharger PDF
+        </button>
+      </div>
+
+      <div class="actions">
+        <button
+          type="button"
+          class="btn btn-secondary"
+          id="back"
+        >
+          ← Modifier
+        </button>
+
+        <button
+          type="button"
+          class="btn btn-secondary"
+          id="new"
+        >
+          Nouveau coaching
+        </button>
+      </div>
+
+      <p class="note">
+        Les données restent uniquement dans ce
+        navigateur jusqu’au téléchargement. Elles
+        ne sont envoyées vers aucun serveur.
+      </p>
+    </section>
+  `;
+
+  bindInput("comment", "comment");
+
+  setupSignatures();
+
+  document
+    .getElementById("back")
+    .addEventListener("click", () => {
+      captureSignatures();
+
+      state.step = THEMES.length + 1;
+
+      saveState();
+      render();
+    });
+
+  document
+    .getElementById("new")
+    .addEventListener("click", () => {
+      const confirmed = window.confirm(
+        "Effacer ce coaching et recommencer ?"
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
+      localStorage.removeItem(STORAGE_KEY);
+
+      state = {
+        ...initial,
+        timestamp: new Date().toISOString(),
+        answers: {},
+      };
+
+      render();
+    });
+
+  document
+    .getElementById("excel")
+    .addEventListener("click", exportExcel);
+
+  document
+    .getElementById("pdf")
+    .addEventListener("click", exportPdf);
+}
+
+/**
+ * Initialise les deux zones de signature.
+ */
+function setupSignatures() {
+  OTJVSignature.setup(
+    state,
+    saveState
+  );
+}
+
+/**
+ * Enregistre les signatures dans l'état.
+ */
+function captureSignatures() {
+  OTJVSignature.capture(
+    state,
+    saveState
+  );
+}
+
+/**
+ * Vérifie que les deux signatures sont présentes.
+ */
+function requireSignatures() {
+  return OTJVSignature.requireBothSignatures(
+    state,
+    saveState
+  );
+}
+
+/**
+ * Génère le fichier Excel.
+ */
+async function exportExcel() {
+  if (!requireSignatures()) {
+    return;
+  }
+
+  await OTJVExcel.downloadSafely(state);
+}
+
+/**
+ * Génère le fichier PDF.
+ */
+function exportPdf() {
+  if (!requireSignatures()) {
+    return;
+  }
+
+  OTJVPdf.downloadSafely(state);
+}
+
+/**
+ * Vérifie que les modules nécessaires sont chargés.
+ */
+function checkDependencies() {
+  const missingDependencies = [];
+
+  if (!Array.isArray(THEMES)) {
+    missingDependencies.push("questions.js");
+  }
+
+  if (!window.OTJVData) {
+    missingDependencies.push("data.js");
+  }
+
+  if (!window.OTJVSignature) {
+    missingDependencies.push("signature.js");
+  }
+
+  if (!window.OTJVExcel) {
+    missingDependencies.push("excel.js");
+  }
+
+  if (!window.OTJVPdf) {
+    missingDependencies.push("pdf.js");
+  }
+
+  if (missingDependencies.length === 0) {
+    return true;
+  }
+
+  app.innerHTML = `
+    <section class="card">
+      <div class="alert">
+        Certains fichiers nécessaires ne sont pas
+        chargés :
+        ${esc(missingDependencies.join(", "))}.
+      </div>
+    </section>
+  `;
+
+  console.error(
+    "Dépendances manquantes :",
+    missingDependencies
+  );
+
+  return false;
+}
+
+/**
+ * Démarrage de l'application.
+ */
+if (checkDependencies()) {
+  render();
+}
