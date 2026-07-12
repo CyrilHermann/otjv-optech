@@ -1,11 +1,12 @@
 const THEMES = window.OTJV_THEMES;
+
 const app = document.getElementById("app");
 const progressBar = document.getElementById("progressBar");
 const progressText = document.getElementById("progressText");
 
-const STORAGE_KEY = "otjv-optech-draft-v1";
+const STORAGE_KEY = "otjv-optech-draft-v2";
 
-const initial = {
+const initialState = {
   step: 0,
   activity: "",
   location: "",
@@ -21,7 +22,7 @@ const initial = {
 let state = loadState();
 
 /**
- * Charge le brouillon enregistré dans le navigateur.
+ * Charge le brouillon sauvegardé dans le navigateur.
  */
 function loadState() {
   try {
@@ -30,7 +31,7 @@ function loadState() {
     );
 
     return {
-      ...initial,
+      ...initialState,
       ...savedState,
       answers: savedState.answers || {},
     };
@@ -41,14 +42,14 @@ function loadState() {
     );
 
     return {
-      ...initial,
+      ...initialState,
       answers: {},
     };
   }
 }
 
 /**
- * Sauvegarde le coaching dans le navigateur.
+ * Sauvegarde l'état actuel du coaching.
  */
 function saveState() {
   try {
@@ -92,16 +93,32 @@ function setProgress() {
     (state.step / totalSteps) * 100
   );
 
-  progressBar.style.width = `${percentage}%`;
+  if (progressBar) {
+    progressBar.style.width = `${percentage}%`;
+  }
+
+  if (!progressText) {
+    return;
+  }
 
   if (state.step === 0) {
     progressText.textContent = "Préparation";
     return;
   }
 
-  if (state.step <= THEMES.length + 1) {
+  if (state.step === 1) {
+    progressText.textContent = "Identification";
+    return;
+  }
+
+  if (
+    state.step >= 2 &&
+    state.step < THEMES.length + 2
+  ) {
+    const currentTheme = state.step - 1;
+
     progressText.textContent =
-      `Étape ${state.step} sur ${THEMES.length + 2}`;
+      `Thème ${currentTheme} sur ${THEMES.length}`;
     return;
   }
 
@@ -136,7 +153,7 @@ function render() {
 }
 
 /**
- * Relie un champ à une propriété de l'état.
+ * Relie un champ de formulaire à une propriété de state.
  */
 function bindInput(id, key) {
   const element = document.getElementById(id);
@@ -152,7 +169,7 @@ function bindInput(id, key) {
 }
 
 /**
- * Affiche un message d'erreur dans une zone.
+ * Affiche un message d'erreur.
  */
 function showAlert(containerId, message) {
   const container =
@@ -170,7 +187,7 @@ function showAlert(containerId, message) {
 }
 
 /**
- * Page d'accueil : activité et emplacement.
+ * Page d'accueil.
  */
 function renderHome() {
   app.innerHTML = `
@@ -180,7 +197,9 @@ function renderHome() {
 
         <h1>OTJV OPTECH</h1>
 
-        <p>Coaching technique — Étape 2</p>
+        <p>
+          Coaching technique — Étape 2
+        </p>
       </div>
 
       <div class="grid">
@@ -191,6 +210,7 @@ function renderHome() {
 
           <input
             id="activity"
+            type="text"
             value="${esc(state.activity)}"
             placeholder="Ex. Maintenance préventive"
             autocomplete="off"
@@ -204,6 +224,7 @@ function renderHome() {
 
           <input
             id="location"
+            type="text"
             value="${esc(state.location)}"
             placeholder="Ex. Ligne 4"
             autocomplete="off"
@@ -245,10 +266,6 @@ function renderHome() {
         return;
       }
 
-      /*
-       * L'horodatage est enregistré au moment
-       * où le coaching est réellement commencé.
-       */
       state.timestamp = new Date().toISOString();
       state.step = 1;
 
@@ -258,7 +275,7 @@ function renderHome() {
 }
 
 /**
- * Page d'identification de la personne coachée.
+ * Page d'identification du coaché et du coach.
  */
 function renderPerson() {
   const date = new Date(state.timestamp);
@@ -285,6 +302,7 @@ function renderPerson() {
 
           <input
             id="coached"
+            type="text"
             value="${esc(state.coachedName)}"
             placeholder="Nom et prénom"
             autocomplete="off"
@@ -298,6 +316,7 @@ function renderPerson() {
 
           <input
             id="coach"
+            type="text"
             value="${esc(state.coachName)}"
             placeholder="Nom et prénom"
             autocomplete="off"
@@ -359,17 +378,29 @@ function renderPerson() {
 }
 
 /**
- * Affiche une page de thème.
+ * Affiche un thème.
+ *
+ * Toutes les lettres sont affichées comme questions,
+ * mais une seule note globale est attribuée au thème.
  */
 function renderTheme(index) {
   const theme = THEMES[index];
 
   if (!theme) {
     state.step = THEMES.length + 2;
+
     saveState();
     render();
     return;
   }
+
+  const themeId = OTJVData.getThemeId(
+    theme,
+    index
+  );
+
+  const selectedValue =
+    state.answers[themeId];
 
   app.innerHTML = `
     <section class="card">
@@ -382,15 +413,71 @@ function renderTheme(index) {
           <h2>${esc(theme.title)}</h2>
 
           <p>
-            ${theme.questions.length}
-            question${theme.questions.length > 1 ? "s" : ""}
+            Pose les questions ci-dessous, puis attribue
+            une seule note globale au thème.
           </p>
         </div>
       </div>
 
-      ${theme.questions
-        .map((question) => questionHtml(question))
-        .join("")}
+      <div class="question-group">
+        <h3>Questions à poser</h3>
+
+        <div class="question-list">
+          ${theme.questions
+            .map(
+              (question) => `
+                <div class="question">
+                  <div class="question-title">
+                    <span class="qid">
+                      ${esc(question.id)}.
+                    </span>
+
+                    ${esc(question.text)}
+                  </div>
+                </div>
+              `
+            )
+            .join("")}
+        </div>
+      </div>
+
+      <div class="theme-score-block">
+        <h3>Note globale du thème</h3>
+
+        <p>
+          Sélectionne la note correspondant à
+          l'ensemble des réponses du groupe.
+        </p>
+
+        <div class="score-options">
+          ${OTJVData.SCORE_OPTIONS
+            .map((option) => {
+              const selected =
+                selectedValue === option.value;
+
+              return `
+                <button
+                  type="button"
+                  class="
+                    score
+                    ${option.cssClass}
+                    ${selected ? "selected" : ""}
+                  "
+                  data-theme="${esc(themeId)}"
+                  data-val="${esc(option.value)}"
+                  aria-pressed="${selected}"
+                >
+                  ${esc(option.label)}
+
+                  <small>
+                    ${esc(option.pointsLabel)}
+                  </small>
+                </button>
+              `;
+            })
+            .join("")}
+        </div>
+      </div>
 
       <div id="themeAlert"></div>
 
@@ -423,7 +510,7 @@ function renderTheme(index) {
     .querySelectorAll(".score")
     .forEach((button) => {
       button.addEventListener("click", () => {
-        state.answers[button.dataset.q] =
+        state.answers[button.dataset.theme] =
           button.dataset.val;
 
         saveState();
@@ -443,16 +530,17 @@ function renderTheme(index) {
   document
     .getElementById("next")
     .addEventListener("click", () => {
-      const missingQuestions =
-        OTJVData.getMissingQuestions(
+      const answered =
+        OTJVData.isThemeAnswered(
           theme,
+          index,
           state.answers
         );
 
-      if (missingQuestions.length > 0) {
+      if (!answered) {
         showAlert(
           "themeAlert",
-          "Réponds à toutes les questions, y compris avec N/A si nécessaire."
+          "Sélectionne une note globale : Vert, Orange, Rouge ou N/A."
         );
 
         return;
@@ -466,56 +554,7 @@ function renderTheme(index) {
 }
 
 /**
- * Génère le HTML d'une question.
- */
-function questionHtml(question) {
-  const options = OTJVData.SCORE_OPTIONS;
-
-  return `
-    <div class="question">
-      <div class="question-title">
-        <span class="qid">
-          ${esc(question.id)}.
-        </span>
-
-        ${esc(question.text)}
-      </div>
-
-      <div class="score-options">
-        ${options
-          .map((option) => {
-            const selected =
-              state.answers[question.id] ===
-              option.value;
-
-            return `
-              <button
-                type="button"
-                class="
-                  score
-                  ${option.cssClass}
-                  ${selected ? "selected" : ""}
-                "
-                data-q="${esc(question.id)}"
-                data-val="${esc(option.value)}"
-                aria-pressed="${selected}"
-              >
-                ${esc(option.label)}
-
-                <small>
-                  ${esc(option.pointsLabel)}
-                </small>
-              </button>
-            `;
-          })
-          .join("")}
-      </div>
-    </div>
-  `;
-}
-
-/**
- * Retourne les résultats du coaching.
+ * Calcule le résultat global.
  */
 function totals() {
   return OTJVData.calculateTotals(
@@ -524,14 +563,14 @@ function totals() {
 }
 
 /**
- * Formate un nombre en français.
+ * Formate un nombre.
  */
 function fmt(number) {
   return OTJVData.formatNumber(number);
 }
 
 /**
- * Affiche la page de résultat et de signatures.
+ * Affiche la page finale.
  */
 function renderSummary() {
   const results = totals();
@@ -575,6 +614,14 @@ function renderSummary() {
             const score =
               results.scores[index];
 
+            let scoreText = "Non répondu";
+
+            if (score === null) {
+              scoreText = "N/A";
+            } else if (score !== undefined) {
+              scoreText = `${fmt(score)} / 2,5`;
+            }
+
             return `
               <tr>
                 <td>
@@ -583,11 +630,7 @@ function renderSummary() {
                 </td>
 
                 <td>
-                  ${
-                    score === null
-                      ? "N/A"
-                      : `${fmt(score)} / 2,5`
-                  }
+                  ${scoreText}
                 </td>
               </tr>
             `;
@@ -682,8 +725,7 @@ function renderSummary() {
 
       <p class="note">
         Les données restent uniquement dans ce
-        navigateur jusqu’au téléchargement. Elles
-        ne sont envoyées vers aucun serveur.
+        navigateur jusqu’au téléchargement.
       </p>
     </section>
   `;
@@ -717,7 +759,7 @@ function renderSummary() {
       localStorage.removeItem(STORAGE_KEY);
 
       state = {
-        ...initial,
+        ...initialState,
         timestamp: new Date().toISOString(),
         answers: {},
       };
@@ -745,7 +787,7 @@ function setupSignatures() {
 }
 
 /**
- * Enregistre les signatures dans l'état.
+ * Capture les signatures.
  */
 function captureSignatures() {
   OTJVSignature.capture(
@@ -755,7 +797,7 @@ function captureSignatures() {
 }
 
 /**
- * Vérifie que les deux signatures sont présentes.
+ * Vérifie que les deux signatures existent.
  */
 function requireSignatures() {
   return OTJVSignature.requireBothSignatures(
@@ -765,7 +807,7 @@ function requireSignatures() {
 }
 
 /**
- * Génère le fichier Excel.
+ * Export Excel.
  */
 async function exportExcel() {
   if (!requireSignatures()) {
@@ -776,7 +818,7 @@ async function exportExcel() {
 }
 
 /**
- * Génère le fichier PDF.
+ * Export PDF.
  */
 function exportPdf() {
   if (!requireSignatures()) {
@@ -787,7 +829,7 @@ function exportPdf() {
 }
 
 /**
- * Vérifie que les modules nécessaires sont chargés.
+ * Vérifie que tous les modules nécessaires sont chargés.
  */
 function checkDependencies() {
   const missingDependencies = [];
