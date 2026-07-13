@@ -145,48 +145,180 @@ window.OTJVExcel = (() => {
 
     worksheet.addImage(imageId, position);
   }
+/**
+ * Charge une image depuis une URL Data.
+ */
+function loadImage(dataUrl) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
 
+    image.onload = () => resolve(image);
+    image.onerror = () =>
+      reject(
+        new Error(
+          "Impossible de charger une signature."
+        )
+      );
+
+    image.src = dataUrl;
+  });
+}
+
+/**
+ * Crée une image réunissant la signature
+ * et le nom complet placé juste en dessous.
+ */
+async function createSignatureBlock(
+  signatureDataUrl,
+  fullName
+) {
+  if (!signatureDataUrl) {
+    return "";
+  }
+
+  const signatureImage =
+    await loadImage(signatureDataUrl);
+
+  const canvas =
+    document.createElement("canvas");
+
+  canvas.width = 700;
+  canvas.height = 260;
+
+  const context =
+    canvas.getContext("2d");
+
+  context.fillStyle = "#ffffff";
+  context.fillRect(
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
+
+  /*
+   * Signature.
+   */
+  const signatureAreaHeight = 185;
+  const maximumWidth = 620;
+  const maximumHeight = 165;
+
+  const scale = Math.min(
+    maximumWidth / signatureImage.width,
+    maximumHeight / signatureImage.height,
+    1
+  );
+
+  const imageWidth =
+    signatureImage.width * scale;
+
+  const imageHeight =
+    signatureImage.height * scale;
+
+  const imageX =
+    (canvas.width - imageWidth) / 2;
+
+  const imageY =
+    (signatureAreaHeight - imageHeight) / 2;
+
+  context.drawImage(
+    signatureImage,
+    imageX,
+    imageY,
+    imageWidth,
+    imageHeight
+  );
+
+  /*
+   * Ligne séparatrice.
+   */
+  context.strokeStyle = "#b9afa8";
+  context.lineWidth = 2;
+
+  context.beginPath();
+  context.moveTo(45, 190);
+  context.lineTo(canvas.width - 45, 190);
+  context.stroke();
+
+  /*
+   * Nom complet.
+   */
+  context.fillStyle = "#2f2925";
+  context.font =
+    'bold 28px Arial, sans-serif';
+
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+
+  context.fillText(
+    fullName || "",
+    canvas.width / 2,
+    225,
+    canvas.width - 60
+  );
+
+  return canvas.toDataURL("image/png");
+}
   /**
    * Ajoute les deux signatures à gauche des totaux.
    *
    * Les coordonnées utilisent les colonnes et lignes Excel
    * sous forme décimale.
    */
-  function addSignatures(workbook, worksheet, state) {
-    addSignatureImage(
-      workbook,
-      worksheet,
+  /**
+ * Ajoute les signatures avec les noms en dessous.
+ */
+async function addSignatures(
+  workbook,
+  worksheet,
+  state
+) {
+  const coachedSignatureBlock =
+    await createSignatureBlock(
       state.coachedSignature,
-      {
-        tl: {
-          col: 0.15,
-          row: 21.15,
-        },
-        ext: {
-          width: 130,
-          height: 48,
-        },
-        editAs: "oneCell",
-      }
+      state.coachedName
     );
 
-    addSignatureImage(
-      workbook,
-      worksheet,
+  const coachSignatureBlock =
+    await createSignatureBlock(
       state.coachSignature,
-      {
-        tl: {
-          col: 2.1,
-          row: 21.15,
-        },
-        ext: {
-          width: 130,
-          height: 48,
-        },
-        editAs: "oneCell",
-      }
+      state.coachName
     );
-  }
+
+  addSignatureImage(
+    workbook,
+    worksheet,
+    coachedSignatureBlock,
+    {
+      tl: {
+        col: 0.15,
+        row: 21.1,
+      },
+      ext: {
+        width: 145,
+        height: 72,
+      },
+      editAs: "oneCell",
+    }
+  );
+
+  addSignatureImage(
+    workbook,
+    worksheet,
+    coachSignatureBlock,
+    {
+      tl: {
+        col: 2.25,
+        row: 21.1,
+      },
+      ext: {
+        width: 145,
+        height: 72,
+      },
+      editAs: "oneCell",
+    }
+  );
+}
 
  /**
  * Calcule le résultat en excluant les thèmes N/A.
@@ -430,10 +562,10 @@ function calculateFixedResults(state) {
       state
     );
 
-    addSignatures(
-      workbook,
-      worksheet,
-      state
+    await addSignatures(
+    workbook,
+    worksheet,
+    state
     );
 
     /*
