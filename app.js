@@ -1426,12 +1426,12 @@ async function exportExcel() {
 /**
  * Export PDF.
  */
-function exportPdf() {
+async function exportPdf() {
   if (!requireSignatures()) {
     return;
   }
 
-  OTJVPdf.downloadSafely(
+  await OTJVPdf.downloadSafely(
     state
   );
 }
