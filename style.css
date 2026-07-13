@@ -384,14 +384,27 @@ input[list] {
   transition:
     transform 0.15s ease,
     box-shadow 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+   appearance: none;
+  -webkit-appearance: none;
+  outline: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
-
-.score:hover {
-  transform: translateY(-1px);
+.score:focus {
+    outline: none;
 }
 
 .score:active {
-  transform: translateY(0);
+    transform: scale(0.97);
+    transform: translateY(0);
+}
+
+.score::-moz-focus-inner {
+    border: 0;
+}
+.score:hover {
+  transform: translateY(-1px);
 }
 
 .score small {
@@ -779,4 +792,8 @@ select,
 input,
 textarea {
   -webkit-tap-highlight-color: transparent;
+}
+button {
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
 }
