@@ -727,3 +727,56 @@ input[list] {
 .information-summary span {
   line-height: 1.4;
 }
+
+/* ===== Style des listes déroulantes ===== */
+
+.field select {
+  width: 100%;
+  padding: 14px 42px 14px 15px;
+  border: 1px solid #cfc3ba;
+  border-radius: 12px;
+  font: inherit;
+  outline: none;
+  background-color: #ffffff;
+  color: var(--text);
+  cursor: pointer;
+
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--brown) 50%),
+    linear-gradient(135deg, var(--brown) 50%, transparent 50%);
+  background-position:
+    calc(100% - 18px) 50%,
+    calc(100% - 12px) 50%;
+  background-size:
+    6px 6px,
+    6px 6px;
+  background-repeat: no-repeat;
+
+  transition:
+    border-color .15s ease,
+    box-shadow .15s ease;
+}
+
+.field select:focus {
+  border-color: var(--brown);
+  box-shadow: 0 0 0 3px rgba(111,78,55,.14);
+}
+
+.field select:disabled {
+  background: #eee7e1;
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+/* Supprime le flash bleu sur mobile */
+
+button,
+select,
+input,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
